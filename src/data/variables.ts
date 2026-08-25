@@ -88,25 +88,27 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     // ─────────────────────────────────────────
     // SECTION 2 — Every Triangle Adds to 180
     // ─────────────────────────────────────────
-    triangleApexX: {
-        defaultValue: 280,
+    triangleAngleLeft: {
+        defaultValue: 55,
         type: 'number',
-        label: 'Triangle apex x',
-        description: 'Horizontal position of the draggable top corner of the triangle',
-        min: 70,
-        max: 490,
+        label: 'Left corner',
+        description: 'Size in degrees of the left base angle of the triangle',
+        unit: '°',
+        min: 15,
+        max: 150,
         step: 1,
-        color: '#62D0AD',
+        color: '#8E90F5',
     },
-    triangleApexY: {
-        defaultValue: 118,
+    triangleAngleRight: {
+        defaultValue: 65,
         type: 'number',
-        label: 'Triangle apex y',
-        description: 'Vertical position of the draggable top corner of the triangle',
-        min: 70,
-        max: 200,
+        label: 'Right corner',
+        description: 'Size in degrees of the right base angle of the triangle',
+        unit: '°',
+        min: 15,
+        max: 150,
         step: 1,
-        color: '#62D0AD',
+        color: '#AC8BF9',
     },
     cornerTearTop: {
         defaultValue: 0,

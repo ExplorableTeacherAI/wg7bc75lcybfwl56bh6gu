@@ -1,4 +1,315 @@
 {
-  "version": 2,
-  "blockIds": []
+  "version": 3,
+  "blockIds": [
+    "orient-title",
+    "orient-promise",
+    "triangle-sum-heading",
+    "triangle-sum-setup",
+    "triangle-sum-visual",
+    "triangle-sum-insight",
+    "triangle-sum-third-angle",
+    "triangle-sum-stretch",
+    "splitting-heading",
+    "splitting-setup",
+    "splitting-visual",
+    "splitting-insight",
+    "splitting-hexagon-count",
+    "splitting-shape-quiz",
+    "angle-sum-heading",
+    "angle-sum-setup",
+    "angle-sum-visual",
+    "angle-sum-graph",
+    "angle-sum-rule",
+    "angle-sum-triangle-count",
+    "angle-sum-total",
+    "wrapping-up-heading",
+    "wrapping-up-summary",
+    "wrapping-up-formula",
+    "wrapping-up-reference"
+  ],
+  "rows": [
+    {
+      "id": "layout-orient-title",
+      "type": "stack",
+      "columns": [
+        [
+          "orient-title"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-orient-promise",
+      "type": "stack",
+      "columns": [
+        [
+          "orient-promise"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-triangle-sum-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "triangle-sum-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-triangle-sum-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "triangle-sum-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-triangle-sum-insight",
+      "type": "stack",
+      "columns": [
+        [
+          "triangle-sum-visual",
+          "triangle-sum-insight"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-triangle-sum-third-angle",
+      "type": "stack",
+      "columns": [
+        [
+          "triangle-sum-third-angle"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-triangle-sum-stretch",
+      "type": "stack",
+      "columns": [
+        [
+          "triangle-sum-stretch"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-visual",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-visual"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-insight",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-insight"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-hexagon-count",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-hexagon-count"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-splitting-shape-quiz",
+      "type": "stack",
+      "columns": [
+        [
+          "splitting-shape-quiz"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-angle-sum-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "angle-sum-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-angle-sum-setup",
+      "type": "stack",
+      "columns": [
+        [
+          "angle-sum-setup"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-angle-sum-linked-views",
+      "type": "split",
+      "columns": [
+        [
+          "angle-sum-visual"
+        ],
+        [
+          "angle-sum-graph"
+        ]
+      ],
+      "props": {
+        "ratio": "1:1",
+        "gap": "lg",
+        "reverse": false,
+        "align": "start"
+      }
+    },
+    {
+      "id": "layout-angle-sum-rule",
+      "type": "stack",
+      "columns": [
+        [
+          "angle-sum-rule"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-angle-sum-triangle-count",
+      "type": "stack",
+      "columns": [
+        [
+          "angle-sum-triangle-count"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-angle-sum-total",
+      "type": "stack",
+      "columns": [
+        [
+          "angle-sum-total"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-heading",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-heading"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-summary",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-summary"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-formula",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-formula"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    },
+    {
+      "id": "layout-wrapping-up-reference",
+      "type": "stack",
+      "columns": [
+        [
+          "wrapping-up-reference"
+        ]
+      ],
+      "props": {
+        "maxWidth": "xl"
+      }
+    }
+  ]
 }

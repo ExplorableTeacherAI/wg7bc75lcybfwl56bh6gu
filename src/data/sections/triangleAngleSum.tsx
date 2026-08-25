@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Block } from "@/components/templates";
 import { StackLayout } from "@/components/layouts";
 import {
@@ -24,30 +24,28 @@ import {
 } from "../variables";
 
 /* ------------------------------------------------------------------ *
- * Corner-tear figure — the three corners of any triangle, dragged
- * down onto a straight line.
+ * Corner-tear figure. The triangle is defined by its two base angles,
+ * so it can be reshaped by dragging the top point OR by typing corner
+ * sizes; the drawing is scaled to fit whatever shape those angles make.
  * ------------------------------------------------------------------ */
 
 const VIEW_W = 560;
 const VIEW_H = 380;
 const BASE_Y = 250;
-const LEFT_CORNER = { x: 150, y: BASE_Y };
-const RIGHT_CORNER = { x: 430, y: BASE_Y };
 const LINE_Y = 330;
 const LINE_ORIGIN = { x: 280, y: LINE_Y };
-const WEDGE_R = 34;
-const SLOT_SCALE = 46 / WEDGE_R;
+const MAX_WIDTH = 380;
+const MAX_HEIGHT = 172;
+
+const MIN_ANGLE = 15;
+const MAX_ANGLE = 150;
+const MAX_BASE_PAIR = 165; // leaves at least 15° for the top corner
 
 const TEAL = "#62D0AD";
 const INDIGO = "#8E90F5";
 const VIOLET = "#AC8BF9";
 const INK = "#334155";
 const STRUCTURE = "#64748B";
-
-const APEX_X_MIN = 70;
-const APEX_X_MAX = 490;
-const APEX_Y_MIN = 70;
-const APEX_Y_MAX = 200;
 
 type Point = { x: number; y: number };
 
@@ -82,7 +80,7 @@ const annulusPath = (theta: number, inner: number, outer: number) => {
     ].join(" ");
 };
 
-/** Interior angle at `vertex`, plus the local rotation that puts the sector inside the triangle. */
+/** Interior angle at `vertex`, plus the rotation that puts the sector inside the triangle. */
 const cornerGeometry = (vertex: Point, first: Point, second: Point) => {
     const angleToFirst = Math.atan2(first.y - vertex.y, first.x - vertex.x);
     const angleToSecond = Math.atan2(second.y - vertex.y, second.x - vertex.x);
@@ -95,10 +93,85 @@ const cornerGeometry = (vertex: Point, first: Point, second: Point) => {
     };
 };
 
+/** Corner points for a triangle with the given base angles, scaled to fit the frame. */
+const layoutTriangle = (leftAngle: number, rightAngle: number) => {
+    const left = toRadians(leftAngle);
+    const right = toRadians(rightAngle);
+    const opposite = Math.sin(left + right) || 0.0001;
+    const apexDistance = Math.sin(right) / opposite;
+    const apexUnit = { x: apexDistance * Math.cos(left), y: -apexDistance * Math.sin(left) };
+    const minX = Math.min(0, apexUnit.x);
+    const maxX = Math.max(1, apexUnit.x);
+    const scale = Math.min(MAX_WIDTH / (maxX - minX), MAX_HEIGHT / Math.abs(apexUnit.y));
+    const leftPoint = { x: LINE_ORIGIN.x - scale * ((minX + maxX) / 2), y: BASE_Y };
+    return {
+        scale,
+        left: leftPoint,
+        right: { x: leftPoint.x + scale, y: BASE_Y },
+        apex: { x: leftPoint.x + scale * apexUnit.x, y: BASE_Y + scale * apexUnit.y },
+    };
+};
+
+function AngleField({ varName, label, color, readOnlyValue }: {
+    varName: string;
+    label: string;
+    color: string;
+    readOnlyValue?: number;
+}) {
+    const setVar = useSetVar();
+    const stored = useVar<number>(varName, 60);
+    const value = readOnlyValue ?? stored;
+    const [text, setText] = useState(String(value));
+
+    useEffect(() => setText(String(value)), [value]);
+
+    const commit = () => {
+        const entered = Number(text);
+        if (!Number.isFinite(entered)) {
+            setText(String(value));
+            return;
+        }
+        const next = clamp(Math.round(entered), MIN_ANGLE, MAX_ANGLE);
+        setVar(varName, next);
+        // The other base corner gives way if the two would leave no room on top.
+        const partner = varName === "triangleAngleLeft" ? "triangleAngleRight" : "triangleAngleLeft";
+        const partnerValue = useVariableValue(partner);
+        if (next + partnerValue > MAX_BASE_PAIR) setVar(partner, MAX_BASE_PAIR - next);
+    };
+
+    return (
+        <label className="flex items-center gap-2 text-[12px] text-[#64748B]">
+            <span>{label}</span>
+            <input
+                type="number"
+                inputMode="numeric"
+                value={text}
+                readOnly={readOnlyValue !== undefined}
+                onChange={(event) => setText(event.target.value)}
+                onBlur={commit}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                        commit();
+                        event.currentTarget.blur();
+                    }
+                }}
+                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-300 read-only:text-[#64748B]"
+                style={{ color, fontVariantNumeric: "tabular-nums" }}
+            />
+            <span>degrees</span>
+        </label>
+    );
+}
+
+/** Reads a value straight from the store outside of render order. */
+function useVariableValue(name: string) {
+    return useVar<number>(name, 60);
+}
+
 function TriangleCornerTearDrawing() {
     const setVar = useSetVar();
-    const apexX = useVar<number>("triangleApexX", 280);
-    const apexY = useVar<number>("triangleApexY", 118);
+    const leftAngle = useVar<number>("triangleAngleLeft", 55);
+    const rightAngle = useVar<number>("triangleAngleRight", 65);
     const tearTopRaw = useVar<number>("cornerTearTop", 0);
     const tearLeftRaw = useVar<number>("cornerTearLeft", 0);
     const tearRightRaw = useVar<number>("cornerTearRight", 0);
@@ -107,9 +180,12 @@ function TriangleCornerTearDrawing() {
     const svgRef = useRef<SVGSVGElement>(null);
     const orderRef = useRef<string[]>([]);
     const dragRef = useRef<{ key: string; startY: number; startValue: number; travel: number } | null>(null);
+    const frozenRef = useRef<ReturnType<typeof layoutTriangle> | null>(null);
     const [apexDragging, setApexDragging] = useState(false);
     const [apexHovered, setApexHovered] = useState(false);
 
+    const shownLeft = useSpring(leftAngle, { stiffness: 300, damping: 28 });
+    const shownRight = useSpring(rightAngle, { stiffness: 300, damping: 28 });
     const tearTop = useSpring(tearTopRaw, { stiffness: 420, damping: 34 });
     const tearLeft = useSpring(tearLeftRaw, { stiffness: 420, damping: 34 });
     const tearRight = useSpring(tearRightRaw, { stiffness: 420, damping: 34 });
@@ -118,24 +194,27 @@ function TriangleCornerTearDrawing() {
         damping: 26,
     });
 
-    const apex: Point = { x: apexX, y: apexY };
+    const layout = apexDragging && frozenRef.current
+        ? { ...frozenRef.current, ...layoutFrozen(frozenRef.current, shownLeft, shownRight) }
+        : layoutTriangle(shownLeft, shownRight);
 
-    const topCorner = cornerGeometry(apex, LEFT_CORNER, RIGHT_CORNER);
-    const leftCorner = cornerGeometry(LEFT_CORNER, RIGHT_CORNER, apex);
-    const rightCorner = cornerGeometry(RIGHT_CORNER, apex, LEFT_CORNER);
+    const wedgeRadius = clamp(layout.scale * 0.11, 15, 34);
+    const slotScale = 46 / wedgeRadius;
 
-    // Whole degrees that always read as a true 180 total.
-    const leftDegrees = Math.round(toDegrees(leftCorner.theta));
-    const rightDegrees = Math.round(toDegrees(rightCorner.theta));
+    const topCorner = cornerGeometry(layout.apex, layout.left, layout.right);
+    const leftCorner = cornerGeometry(layout.left, layout.right, layout.apex);
+    const rightCorner = cornerGeometry(layout.right, layout.apex, layout.left);
+
+    const leftDegrees = Math.round(leftAngle);
+    const rightDegrees = Math.round(rightAngle);
     const topDegrees = 180 - leftDegrees - rightDegrees;
 
     const wedges = [
-        { key: "cornerTearTop", vertex: apex, geometry: topCorner, value: tearTop, color: TEAL, label: topDegrees },
-        { key: "cornerTearLeft", vertex: LEFT_CORNER, geometry: leftCorner, value: tearLeft, color: INDIGO, label: leftDegrees },
-        { key: "cornerTearRight", vertex: RIGHT_CORNER, geometry: rightCorner, value: tearRight, color: VIOLET, label: rightDegrees },
+        { key: "cornerTearTop", vertex: layout.apex, geometry: topCorner, value: tearTop, color: TEAL, label: topDegrees },
+        { key: "cornerTearLeft", vertex: layout.left, geometry: leftCorner, value: tearLeft, color: INDIGO, label: leftDegrees },
+        { key: "cornerTearRight", vertex: layout.right, geometry: rightCorner, value: tearRight, color: VIOLET, label: rightDegrees },
     ];
 
-    // Placed pieces pack along the line in the order the student moved them.
     const slotStart: Record<string, number> = {};
     let filled = 0;
     for (const key of orderRef.current) {
@@ -196,9 +275,22 @@ function TriangleCornerTearDrawing() {
 
     const moveApex = (event: React.PointerEvent<SVGCircleElement>) => {
         if (!apexDragging) return;
+        const frozen = frozenRef.current;
+        if (!frozen) return;
         const point = toSvgPoint(event.clientX, event.clientY);
-        setVar("triangleApexX", Math.round(clamp(point.x, APEX_X_MIN, APEX_X_MAX)));
-        setVar("triangleApexY", Math.round(clamp(point.y, APEX_Y_MIN, APEX_Y_MAX)));
+        const height = Math.max(6, BASE_Y - point.y);
+        const nextLeft = clamp(
+            Math.round(toDegrees(Math.atan2(height, point.x - frozen.left.x))),
+            MIN_ANGLE,
+            MAX_ANGLE,
+        );
+        const nextRight = clamp(
+            Math.round(toDegrees(Math.atan2(height, frozen.right.x - point.x))),
+            MIN_ANGLE,
+            MAX_BASE_PAIR - nextLeft,
+        );
+        setVar("triangleAngleLeft", nextLeft);
+        setVar("triangleAngleRight", nextRight);
     };
 
     return (
@@ -209,10 +301,9 @@ function TriangleCornerTearDrawing() {
                 </filter>
             </defs>
 
-            {/* Triangle outline and the straight line the pieces land on */}
             <g opacity={recede} style={ease}>
                 <polygon
-                    points={`${apex.x},${apex.y} ${LEFT_CORNER.x},${LEFT_CORNER.y} ${RIGHT_CORNER.x},${RIGHT_CORNER.y}`}
+                    points={`${layout.apex.x},${layout.apex.y} ${layout.left.x},${layout.left.y} ${layout.right.x},${layout.right.y}`}
                     fill="#F8FAFC"
                     stroke={STRUCTURE}
                     strokeWidth="2"
@@ -230,7 +321,6 @@ function TriangleCornerTearDrawing() {
                 />
             </g>
 
-            {/* The three corner pieces */}
             <g opacity={recede} style={ease}>
                 {wedges.map((wedge) => {
                     const t = wedge.value;
@@ -239,16 +329,16 @@ function TriangleCornerTearDrawing() {
                     const rotation =
                         wedge.geometry.startDegrees +
                         shortestTurn(slotStart[wedge.key] - wedge.geometry.startDegrees) * t;
-                    const scale = 1 + (SLOT_SCALE - 1) * t;
+                    const scale = 1 + (slotScale - 1) * t;
                     const transform = `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) rotate(${rotation.toFixed(2)}) scale(${scale.toFixed(3)})`;
-                    const labelRadius = WEDGE_R * scale * 0.62;
+                    const labelRadius = wedgeRadius * scale * 0.62;
                     const labelAngle = toRadians(rotation + toDegrees(wedge.geometry.theta) / 2);
                     const raw = wedge.key === "cornerTearTop" ? tearTopRaw : wedge.key === "cornerTearLeft" ? tearLeftRaw : tearRightRaw;
 
                     return (
                         <g key={wedge.key}>
                             <path
-                                d={sectorPath(wedge.geometry.theta, WEDGE_R)}
+                                d={sectorPath(wedge.geometry.theta, wedgeRadius)}
                                 transform={transform}
                                 fill={wedge.color}
                                 fillOpacity={0.55}
@@ -269,7 +359,7 @@ function TriangleCornerTearDrawing() {
                                 {`${wedge.label}°`}
                             </text>
                             <path
-                                d={annulusPath(wedge.geometry.theta, 18, 46)}
+                                d={annulusPath(wedge.geometry.theta, wedgeRadius * 0.5, wedgeRadius + 12)}
                                 transform={transform}
                                 fill="transparent"
                                 style={{ cursor: "grab", touchAction: "none" }}
@@ -283,13 +373,10 @@ function TriangleCornerTearDrawing() {
                 })}
             </g>
 
-            {/* Draggable top corner of the triangle */}
-            {apexActive && (
-                <circle cx={apex.x} cy={apex.y} r={22} fill={TEAL} opacity={0.28} />
-            )}
+            {apexActive && <circle cx={layout.apex.x} cy={layout.apex.y} r={22} fill={TEAL} opacity={0.28} />}
             <circle
-                cx={apex.x}
-                cy={apex.y}
+                cx={layout.apex.x}
+                cy={layout.apex.y}
                 r={11 * apexScale}
                 fill={TEAL}
                 stroke="#FFFFFF"
@@ -297,18 +384,25 @@ function TriangleCornerTearDrawing() {
                 filter="url(#corner-tear-handle-shadow)"
             />
             <circle
-                cx={apex.x}
-                cy={apex.y}
+                cx={layout.apex.x}
+                cy={layout.apex.y}
                 r={20}
                 fill="transparent"
                 style={{ cursor: apexDragging ? "grabbing" : "grab", touchAction: "none" }}
                 onPointerDown={(event) => {
                     event.currentTarget.setPointerCapture(event.pointerId);
+                    frozenRef.current = layoutTriangle(leftAngle, rightAngle);
                     setApexDragging(true);
                 }}
                 onPointerMove={moveApex}
-                onPointerUp={() => setApexDragging(false)}
-                onPointerCancel={() => setApexDragging(false)}
+                onPointerUp={() => {
+                    setApexDragging(false);
+                    frozenRef.current = null;
+                }}
+                onPointerCancel={() => {
+                    setApexDragging(false);
+                    frozenRef.current = null;
+                }}
                 onPointerEnter={() => {
                     setApexHovered(true);
                     setVar("triangleCornerHighlight", "apex");
@@ -319,26 +413,39 @@ function TriangleCornerTearDrawing() {
                 }}
             />
 
-            {/* Live total under the line */}
             <g opacity={recede} style={ease}>
-            <text
-                x={LINE_ORIGIN.x}
-                y={356}
-                textAnchor="middle"
-                fontSize="13"
-                fill={INK}
-                style={{ fontVariantNumeric: "tabular-nums" }}
-            >
-                <tspan fill={TEAL}>{`${topDegrees}°`}</tspan>
-                <tspan>{" + "}</tspan>
-                <tspan fill={INDIGO}>{`${leftDegrees}°`}</tspan>
-                <tspan>{" + "}</tspan>
-                <tspan fill={VIOLET}>{`${rightDegrees}°`}</tspan>
-                <tspan fontWeight={allPlaced ? 700 : 400}>{" = 180°"}</tspan>
-            </text>
+                <text
+                    x={LINE_ORIGIN.x}
+                    y={356}
+                    textAnchor="middle"
+                    fontSize="13"
+                    fill={INK}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                    <tspan fill={TEAL}>{`${topDegrees}°`}</tspan>
+                    <tspan>{" + "}</tspan>
+                    <tspan fill={INDIGO}>{`${leftDegrees}°`}</tspan>
+                    <tspan>{" + "}</tspan>
+                    <tspan fill={VIOLET}>{`${rightDegrees}°`}</tspan>
+                    <tspan fontWeight={allPlaced ? 700 : 400}>{" = 180°"}</tspan>
+                </text>
             </g>
         </svg>
     );
+}
+
+/** While the apex is being dragged the frame keeps the size it had, so the shape tracks the pointer. */
+function layoutFrozen(frozen: ReturnType<typeof layoutTriangle>, leftAngle: number, rightAngle: number) {
+    const left = toRadians(leftAngle);
+    const right = toRadians(rightAngle);
+    const opposite = Math.sin(left + right) || 0.0001;
+    const apexDistance = (Math.sin(right) / opposite) * frozen.scale;
+    return {
+        apex: {
+            x: frozen.left.x + apexDistance * Math.cos(left),
+            y: BASE_Y - apexDistance * Math.sin(left),
+        },
+    };
 }
 
 function TriangleCornerTearFigure() {
@@ -346,16 +453,17 @@ function TriangleCornerTearFigure() {
     return (
         <Figure
             id="triangle-corner-tear"
-            caption="Drag each shaded corner down onto the line, and drag the teal top point to reshape the triangle at any time."
+            caption="Drag each shaded corner down onto the line. Reshape the triangle by dragging the teal top point, or by typing corner sizes below."
             onReset={() => {
-                setVar("triangleApexX", 280);
-                setVar("triangleApexY", 118);
+                setVar("triangleAngleLeft", 55);
+                setVar("triangleAngleRight", 65);
                 setVar("cornerTearTop", 0);
                 setVar("cornerTearLeft", 0);
                 setVar("cornerTearRight", 0);
             }}
         >
             <TriangleCornerTearDrawing />
+            <TriangleAngleControls />
             <InteractionHintSequence
                 hintKey="triangle-corner-tear-drag"
                 steps={[
@@ -368,6 +476,19 @@ function TriangleCornerTearFigure() {
                 ]}
             />
         </Figure>
+    );
+}
+
+function TriangleAngleControls() {
+    const leftAngle = useVar<number>("triangleAngleLeft", 55);
+    const rightAngle = useVar<number>("triangleAngleRight", 65);
+    return (
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-6 pb-5">
+            <AngleField varName="triangleAngleLeft" label="Left corner" color={INDIGO} />
+            <AngleField varName="triangleAngleRight" label="Right corner" color={VIOLET} />
+            <AngleField varName="triangleAngleTopReadout" label="Top corner" color={TEAL}
+                readOnlyValue={180 - Math.round(leftAngle) - Math.round(rightAngle)} />
+        </div>
     );
 }
 
