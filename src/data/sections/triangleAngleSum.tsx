@@ -19,7 +19,6 @@ import {
     getVariableInfo,
     clozePropsFromDefinition,
     choicePropsFromDefinition,
-    spotColorPropsFromDefinition,
     linkedHighlightPropsFromDefinition,
 } from "../variables";
 
@@ -93,16 +92,25 @@ const cornerGeometry = (vertex: Point, first: Point, second: Point) => {
     };
 };
 
-/** Corner points for a triangle with the given base angles, scaled to fit the frame. */
-const layoutTriangle = (leftAngle: number, rightAngle: number) => {
+/** Where the apex sits for a unit-length base, plus the frame's horizontal spread. */
+const triangleShape = (leftAngle: number, rightAngle: number) => {
     const left = toRadians(leftAngle);
     const right = toRadians(rightAngle);
     const opposite = Math.sin(left + right) || 0.0001;
     const apexDistance = Math.sin(right) / opposite;
     const apexUnit = { x: apexDistance * Math.cos(left), y: -apexDistance * Math.sin(left) };
-    const minX = Math.min(0, apexUnit.x);
-    const maxX = Math.max(1, apexUnit.x);
-    const scale = Math.min(MAX_WIDTH / (maxX - minX), MAX_HEIGHT / Math.abs(apexUnit.y));
+    return { apexUnit, minX: Math.min(0, apexUnit.x), maxX: Math.max(1, apexUnit.x) };
+};
+
+/** The largest base length that keeps the whole triangle inside the frame. */
+const fittedScale = (leftAngle: number, rightAngle: number) => {
+    const { apexUnit, minX, maxX } = triangleShape(leftAngle, rightAngle);
+    return Math.min(MAX_WIDTH / (maxX - minX), MAX_HEIGHT / Math.abs(apexUnit.y));
+};
+
+/** Corner points for a triangle with the given base angles, drawn at the given base length. */
+const layoutTriangle = (leftAngle: number, rightAngle: number, scale: number) => {
+    const { apexUnit, minX, maxX } = triangleShape(leftAngle, rightAngle);
     const leftPoint = { x: LINE_ORIGIN.x - scale * ((minX + maxX) / 2), y: BASE_Y };
     return {
         scale,
@@ -112,10 +120,12 @@ const layoutTriangle = (leftAngle: number, rightAngle: number) => {
     };
 };
 
-function AngleField({ varName, label, color, readOnlyValue }: {
+function AngleField({ varName, label, color, partnerVarName, partnerValue, readOnlyValue }: {
     varName: string;
     label: string;
     color: string;
+    partnerVarName?: string;
+    partnerValue?: number;
     readOnlyValue?: number;
 }) {
     const setVar = useSetVar();
@@ -134,9 +144,9 @@ function AngleField({ varName, label, color, readOnlyValue }: {
         const next = clamp(Math.round(entered), MIN_ANGLE, MAX_ANGLE);
         setVar(varName, next);
         // The other base corner gives way if the two would leave no room on top.
-        const partner = varName === "triangleAngleLeft" ? "triangleAngleRight" : "triangleAngleLeft";
-        const partnerValue = useVariableValue(partner);
-        if (next + partnerValue > MAX_BASE_PAIR) setVar(partner, MAX_BASE_PAIR - next);
+        if (partnerVarName && partnerValue !== undefined && next + partnerValue > MAX_BASE_PAIR) {
+            setVar(partnerVarName, MAX_BASE_PAIR - next);
+        }
     };
 
     return (
@@ -155,17 +165,12 @@ function AngleField({ varName, label, color, readOnlyValue }: {
                         event.currentTarget.blur();
                     }
                 }}
-                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-300 read-only:text-[#64748B]"
+                className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-300"
                 style={{ color, fontVariantNumeric: "tabular-nums" }}
             />
             <span>degrees</span>
         </label>
     );
-}
-
-/** Reads a value straight from the store outside of render order. */
-function useVariableValue(name: string) {
-    return useVar<number>(name, 60);
 }
 
 function TriangleCornerTearDrawing() {
@@ -194,11 +199,14 @@ function TriangleCornerTearDrawing() {
         damping: 26,
     });
 
-    const layout = apexDragging && frozenRef.current
-        ? { ...frozenRef.current, ...layoutFrozen(frozenRef.current, shownLeft, shownRight) }
-        : layoutTriangle(shownLeft, shownRight);
+    const targetScale = apexDragging && frozenRef.current
+        ? frozenRef.current.scale
+        : fittedScale(shownLeft, shownRight);
+    const drawnScale = useSpring(targetScale, { stiffness: 220, damping: 26 });
+    const layout = layoutTriangle(shownLeft, shownRight, drawnScale);
 
     const wedgeRadius = clamp(layout.scale * 0.11, 15, 34);
+    const labelVisibility = clamp((layout.scale - 90) / 40, 0, 1);
     const slotScale = 46 / wedgeRadius;
 
     const topCorner = cornerGeometry(layout.apex, layout.left, layout.right);
@@ -353,7 +361,7 @@ function TriangleCornerTearDrawing() {
                                 dominantBaseline="middle"
                                 fontSize="12"
                                 fill={INK}
-                                opacity={clamp(1 - t * 2.2, 0, 1)}
+                                opacity={clamp(1 - t * 2.2, 0, 1) * labelVisibility}
                                 style={{ fontVariantNumeric: "tabular-nums", pointerEvents: "none" }}
                             >
                                 {`${wedge.label}°`}
@@ -391,7 +399,7 @@ function TriangleCornerTearDrawing() {
                 style={{ cursor: apexDragging ? "grabbing" : "grab", touchAction: "none" }}
                 onPointerDown={(event) => {
                     event.currentTarget.setPointerCapture(event.pointerId);
-                    frozenRef.current = layoutTriangle(leftAngle, rightAngle);
+                    frozenRef.current = layoutTriangle(leftAngle, rightAngle, fittedScale(leftAngle, rightAngle));
                     setApexDragging(true);
                 }}
                 onPointerMove={moveApex}
@@ -434,20 +442,6 @@ function TriangleCornerTearDrawing() {
     );
 }
 
-/** While the apex is being dragged the frame keeps the size it had, so the shape tracks the pointer. */
-function layoutFrozen(frozen: ReturnType<typeof layoutTriangle>, leftAngle: number, rightAngle: number) {
-    const left = toRadians(leftAngle);
-    const right = toRadians(rightAngle);
-    const opposite = Math.sin(left + right) || 0.0001;
-    const apexDistance = (Math.sin(right) / opposite) * frozen.scale;
-    return {
-        apex: {
-            x: frozen.left.x + apexDistance * Math.cos(left),
-            y: BASE_Y - apexDistance * Math.sin(left),
-        },
-    };
-}
-
 function TriangleCornerTearFigure() {
     const setVar = useSetVar();
     return (
@@ -470,7 +464,7 @@ function TriangleCornerTearFigure() {
                     {
                         gesture: "drag-vertical",
                         label: "Drag the teal corner down to the line",
-                        position: { x: "50%", y: "31%" },
+                        position: { x: "54%", y: "21%" },
                         dragPath: { type: "line", startOffset: { x: 0, y: -14 }, endOffset: { x: 0, y: 34 } },
                     },
                 ]}
@@ -484,8 +478,10 @@ function TriangleAngleControls() {
     const rightAngle = useVar<number>("triangleAngleRight", 65);
     return (
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-6 pb-5">
-            <AngleField varName="triangleAngleLeft" label="Left corner" color={INDIGO} />
-            <AngleField varName="triangleAngleRight" label="Right corner" color={VIOLET} />
+            <AngleField varName="triangleAngleLeft" label="Left corner" color={INDIGO}
+                partnerVarName="triangleAngleRight" partnerValue={Math.round(rightAngle)} />
+            <AngleField varName="triangleAngleRight" label="Right corner" color={VIOLET}
+                partnerVarName="triangleAngleLeft" partnerValue={Math.round(leftAngle)} />
             <AngleField varName="triangleAngleTopReadout" label="Top corner" color={TEAL}
                 readOnlyValue={180 - Math.round(leftAngle) - Math.round(rightAngle)} />
         </div>
@@ -515,7 +511,8 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                 >
                     teal top point
                 </InlineLinkedHighlight>
-                {" "}around and watch what the pieces do.
+                {" "}around, or type new corner sizes under the picture, and watch what the pieces
+                do.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -554,7 +551,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                                 {
                                     gesture: "drag-vertical",
                                     label: "Drag the indigo corner down to the line",
-                                    position: { x: "27%", y: "66%" },
+                                    position: { x: "32%", y: "66%" },
                                     completionVar: "cornerTearLeft",
                                     completionValue: 1,
                                     completionTolerance: 0.25,
@@ -562,7 +559,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                                 {
                                     gesture: "drag-vertical",
                                     label: "Bring the violet corner down beside it",
-                                    position: { x: "77%", y: "66%" },
+                                    position: { x: "68%", y: "66%" },
                                     completionVar: "cornerTearRight",
                                     completionValue: 1,
                                     completionTolerance: 0.25,
@@ -570,7 +567,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                                 {
                                     gesture: "drag-vertical",
                                     label: "Now the teal corner — it fills exactly the gap that is left",
-                                    position: { x: "50%", y: "31%" },
+                                    position: { x: "54%", y: "21%" },
                                     completionVar: "cornerTearTop",
                                     completionValue: 1,
                                     completionTolerance: 0.25,
