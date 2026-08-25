@@ -158,29 +158,29 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     // ─────────────────────────────────────────
     // SECTION 3 — Splitting a Shape into Triangles
     // ─────────────────────────────────────────
-    hexagonSelection: {
+    hexagonCuts: {
         defaultValue: '',
         type: 'text',
-        label: 'Chosen triangles',
-        description: 'Comma separated ids of the triangles the student has chosen inside the hexagon',
+        label: 'Cuts made',
+        description: 'Comma separated corner numbers the student has cut across to, in order',
     },
-    hexagonChosenCount: {
+    hexagonCutCount: {
         defaultValue: 0,
         type: 'number',
-        label: 'Triangles chosen',
-        description: 'How many triangles the student has chosen inside the hexagon',
+        label: 'Cuts made',
+        description: 'How many cuts the student has made from the starting corner',
         min: 0,
-        max: 8,
+        max: 3,
         step: 1,
         color: '#62D0AD',
     },
-    hexagonCoverOnce: {
+    hexagonTriangleCount: {
         defaultValue: 0,
         type: 'number',
-        label: 'Covered exactly once',
-        description: 'Percentage of the hexagon covered by exactly one chosen triangle',
+        label: 'Triangles made',
+        description: 'How many of the pieces inside the hexagon are now triangles',
         min: 0,
-        max: 100,
+        max: 4,
         step: 1,
         color: '#62D0AD',
     },

@@ -13,6 +13,7 @@ import {
 } from "@/components/atoms";
 import { Figure } from "@/components/molecules";
 import { useVar, useSetVar } from "@/stores";
+import { clamp, useSpring } from "@/lib/motion";
 import {
     getVariableInfo,
     clozePropsFromDefinition,
@@ -21,19 +22,19 @@ import {
 } from "../variables";
 
 /* ------------------------------------------------------------------ *
- * A hexagon full of overlapping triangles. Students choose the ones
- * they think make up the shape; doubled patches darken and missed
- * patches stay white, so over-counting is visible rather than told.
+ * One cut at a time. Every cut runs from the same starting corner,
+ * and each one slices a fresh triangle off the hexagon.
  * ------------------------------------------------------------------ */
 
 const VIEW = 400;
 const HEX_CENTER = { x: 200, y: 180 };
 const HEX_RADIUS = 118;
+const CUT_TARGETS = [2, 3, 4];
 
 const TEAL = "#62D0AD";
 const INK = "#334155";
 const STRUCTURE = "#64748B";
-const FAINT = "#CBD5E1";
+const PAPER = "#F1F5F9";
 
 type Point = { x: number; y: number };
 
@@ -46,268 +47,240 @@ const hexVertex = (index: number): Point => {
 };
 
 const HEX_VERTICES = Array.from({ length: 6 }, (_, index) => hexVertex(index));
+const START = HEX_VERTICES[0];
 
-/** Eight of the triangles hiding in the tangle — four of them tile the shape. */
-const CANDIDATES: { id: string; corners: [number, number, number] }[] = [
-    { id: "a", corners: [0, 1, 2] },
-    { id: "b", corners: [0, 2, 3] },
-    { id: "c", corners: [0, 3, 4] },
-    { id: "d", corners: [0, 4, 5] },
-    { id: "e", corners: [1, 2, 3] },
-    { id: "f", corners: [2, 3, 4] },
-    { id: "g", corners: [0, 2, 4] },
-    { id: "h", corners: [0, 1, 3] },
-];
+const pointsAttribute = (points: Point[]) =>
+    points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
 
-const cornersOf = (candidate: { corners: [number, number, number] }) =>
-    candidate.corners.map((index) => HEX_VERTICES[index]);
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
-const centroidOf = (points: Point[]): Point => ({
-    x: (points[0].x + points[1].x + points[2].x) / 3,
-    y: (points[0].y + points[1].y + points[2].y) / 3,
-});
-
-const sign = (p: Point, a: Point, b: Point) => (p.x - b.x) * (a.y - b.y) - (a.x - b.x) * (p.y - b.y);
-
-const insideTriangle = (p: Point, tri: Point[]) => {
-    const d1 = sign(p, tri[0], tri[1]);
-    const d2 = sign(p, tri[1], tri[2]);
-    const d3 = sign(p, tri[2], tri[0]);
-    const hasNegative = d1 < 0 || d2 < 0 || d3 < 0;
-    const hasPositive = d1 > 0 || d2 > 0 || d3 > 0;
-    return !(hasNegative && hasPositive);
-};
-
-const insideHexagon = (p: Point) => {
-    let inside = false;
-    for (let i = 0, j = HEX_VERTICES.length - 1; i < HEX_VERTICES.length; j = i++) {
-        const a = HEX_VERTICES[i];
-        const b = HEX_VERTICES[j];
-        if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) {
-            inside = !inside;
-        }
-    }
-    return inside;
-};
-
-const pointsAttribute = (points: Point[]) => points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-const formatPercent = (value: number) => `${Math.round(value)}%`;
-
-function HexagonCoverageDrawing() {
+function HexagonCutsDrawing() {
     const setVar = useSetVar();
-    const selectionText = useVar<string>("hexagonSelection", "");
+    const cutsText = useVar<string>("hexagonCuts", "");
     const highlight = useVar<string>("hexagonViewHighlight", "");
-    const [previewId, setPreviewId] = useState<string | null>(null);
+    const [pointer, setPointer] = useState<Point | null>(null);
+    const [hovered, setHovered] = useState(false);
 
-    const selection = useMemo(
-        () => selectionText.split(",").map((id) => id.trim()).filter(Boolean),
-        [selectionText],
+    const cuts = useMemo(
+        () => cutsText.split(",").map((value) => Number(value)).filter((value) => CUT_TARGETS.includes(value)),
+        [cutsText],
     );
+    const newestCut = cuts.length > 0 ? cuts[cuts.length - 1] : null;
 
-    const coverage = useMemo(() => {
-        const chosen = CANDIDATES.filter((candidate) => selection.includes(candidate.id)).map(cornersOf);
-        let inside = 0;
-        let once = 0;
-        let doubled = 0;
-        for (let x = HEX_CENTER.x - HEX_RADIUS; x <= HEX_CENTER.x + HEX_RADIUS; x += 5) {
-            for (let y = HEX_CENTER.y - HEX_RADIUS; y <= HEX_CENTER.y + HEX_RADIUS; y += 5) {
-                const point = { x, y };
-                if (!insideHexagon(point)) continue;
-                inside += 1;
-                let covers = 0;
-                for (const triangle of chosen) {
-                    if (insideTriangle(point, triangle)) covers += 1;
-                }
-                if (covers === 1) once += 1;
-                else if (covers > 1) doubled += 1;
-            }
-        }
-        if (inside === 0) return { once: 0, doubled: 0, missed: 0 };
-        return {
-            once: (once / inside) * 100,
-            doubled: (doubled / inside) * 100,
-            missed: ((inside - once - doubled) / inside) * 100,
-        };
-    }, [selection]);
+    const growth = useSpring(cuts.length, { stiffness: 190, damping: 22 });
+    const newestGrowth = clamp(growth - (cuts.length - 1), 0, 1);
+    const startScale = useSpring(pointer || hovered || highlight === "start" ? 1.3 : 1, {
+        stiffness: 400,
+        damping: 26,
+    });
 
-    const perfect = coverage.once > 99 && selection.length > 0;
+    // Cuts from one corner turn the shape into strips between neighbouring cuts.
+    const boundaries = [1, ...[...cuts].sort((a, b) => a - b), 5];
+    const regions = boundaries.slice(0, -1).map((from, index) => {
+        const to = boundaries[index + 1];
+        const corners = [START, ...Array.from({ length: to - from + 1 }, (_, step) => HEX_VERTICES[from + step])];
+        return { from, to, corners, isTriangle: to - from === 1 };
+    });
+
+    const triangleCount = regions.filter((region) => region.isTriangle).length;
+    const complete = cuts.length === CUT_TARGETS.length;
 
     useEffect(() => {
-        setVar("hexagonChosenCount", selection.length);
-        setVar("hexagonCoverOnce", Math.round(coverage.once));
-    }, [setVar, selection.length, coverage.once]);
+        setVar("hexagonCutCount", cuts.length);
+        setVar("hexagonTriangleCount", triangleCount);
+    }, [setVar, cuts.length, triangleCount]);
 
-    const toggle = (id: string) => {
-        const next = selection.includes(id) ? selection.filter((item) => item !== id) : [...selection, id];
-        setVar("hexagonSelection", next.join(","));
+    const addCut = (target: number) => {
+        if (cuts.includes(target)) return;
+        setVar("hexagonCuts", [...cuts, target].join(","));
         setVar("hexagonExplored", true);
     };
 
-    const gridActive = highlight === "grid";
-    const recede = gridActive ? 0.35 : 1;
-    const ease = { transition: "opacity 150ms ease-out" };
+    const svgPoint = (event: React.PointerEvent<SVGElement>): Point => {
+        const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect()
+            ?? (event.currentTarget as SVGSVGElement).getBoundingClientRect();
+        return {
+            x: ((event.clientX - rect.left) / rect.width) * VIEW,
+            y: ((event.clientY - rect.top) / rect.height) * VIEW,
+        };
+    };
 
-    const diagonals: [number, number][] = [];
-    for (let i = 0; i < 6; i += 1) {
-        for (let j = i + 2; j < 6; j += 1) {
-            if (i === 0 && j === 5) continue;
-            diagonals.push([i, j]);
-        }
-    }
+    const releaseDrag = (event: React.PointerEvent<SVGCircleElement>) => {
+        const point = svgPoint(event);
+        const target = CUT_TARGETS.filter((index) => !cuts.includes(index))
+            .find((index) => distance(point, HEX_VERTICES[index]) < 34);
+        if (target !== undefined) addCut(target);
+        setPointer(null);
+    };
+
+    const startActive = highlight === "start";
+    const cutsActive = highlight === "cuts";
+    const dim = (id: string) => (highlight && highlight !== id ? 0.35 : 1);
+    const ease = { transition: "opacity 150ms ease-out" };
 
     return (
         <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="block w-full">
             <defs>
-                <filter id="hexagon-dot-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <filter id="hexagon-cut-shadow" x="-50%" y="-50%" width="200%" height="200%">
                     <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#0F172A" floodOpacity="0.25" />
                 </filter>
             </defs>
 
-            {/* Chosen triangles stack, so doubled patches darken on their own */}
-            <g opacity={recede} style={ease}>
-                {CANDIDATES.filter((candidate) => selection.includes(candidate.id)).map((candidate) => (
-                    <polygon
-                        key={`chosen-${candidate.id}`}
-                        points={pointsAttribute(cornersOf(candidate))}
-                        fill={TEAL}
-                        fillOpacity={0.3}
-                    />
-                ))}
-            </g>
-
-            {/* The faint tangle of lines */}
-            <g
-                opacity={highlight && !gridActive ? 0.35 : 1}
-                style={ease}
-                onPointerEnter={() => setVar("hexagonViewHighlight", "grid")}
-                onPointerLeave={() => setVar("hexagonViewHighlight", "")}
-            >
-                {gridActive && diagonals.map(([from, to]) => (
-                    <line
-                        key={`halo-${from}-${to}`}
-                        x1={HEX_VERTICES[from].x}
-                        y1={HEX_VERTICES[from].y}
-                        x2={HEX_VERTICES[to].x}
-                        y2={HEX_VERTICES[to].y}
-                        stroke={STRUCTURE}
-                        strokeWidth={7}
-                        opacity={0.22}
-                        strokeLinecap="round"
-                    />
-                ))}
-                {diagonals.map(([from, to]) => (
-                    <line
-                        key={`diagonal-${from}-${to}`}
-                        x1={HEX_VERTICES[from].x}
-                        y1={HEX_VERTICES[from].y}
-                        x2={HEX_VERTICES[to].x}
-                        y2={HEX_VERTICES[to].y}
-                        stroke={gridActive ? STRUCTURE : FAINT}
-                        strokeWidth={gridActive ? 2 : 1}
-                        strokeLinecap="round"
-                        style={{ transition: "stroke-width 150ms ease-out" }}
-                    />
-                ))}
-            </g>
-
-            <g opacity={recede} style={ease}>
+            {/* The pieces the cuts have made so far */}
+            <g opacity={dim("pieces")} style={ease}>
+                {regions.map((region, index) => {
+                    const touchesNewest = newestCut !== null && (region.from === newestCut || region.to === newestCut);
+                    return (
+                        <polygon
+                            key={`region-${region.from}-${region.to}`}
+                            points={pointsAttribute(region.corners)}
+                            fill={region.isTriangle ? TEAL : PAPER}
+                            fillOpacity={region.isTriangle ? (index % 2 === 0 ? 0.22 : 0.34) : 1}
+                            opacity={touchesNewest ? newestGrowth : 1}
+                        />
+                    );
+                })}
                 <polygon
                     points={pointsAttribute(HEX_VERTICES)}
                     fill="none"
-                    stroke={perfect ? INK : STRUCTURE}
-                    strokeWidth={perfect ? 3 : 2}
+                    stroke={complete ? INK : STRUCTURE}
+                    strokeWidth={complete ? 3 : 2}
                     strokeLinejoin="round"
                     style={{ transition: "stroke-width 150ms ease-out" }}
                 />
+            </g>
 
-                {/* Preview outline of the triangle under the pointer */}
-                {previewId && (
-                    <polygon
-                        points={pointsAttribute(cornersOf(CANDIDATES.find((candidate) => candidate.id === previewId)!))}
-                        fill={TEAL}
-                        fillOpacity={0.12}
-                        stroke={TEAL}
-                        strokeWidth={2.5}
-                        strokeLinejoin="round"
-                    />
-                )}
-
-                {/* One dot per triangle you can choose */}
-                {CANDIDATES.map((candidate) => {
-                    const centre = centroidOf(cornersOf(candidate));
-                    const chosen = selection.includes(candidate.id);
+            {/* Each cut, drawn from the starting corner */}
+            <g
+                opacity={dim("cuts")}
+                style={ease}
+                onPointerEnter={() => setVar("hexagonViewHighlight", "cuts")}
+                onPointerLeave={() => setVar("hexagonViewHighlight", "")}
+            >
+                {cuts.map((target) => {
+                    const end = HEX_VERTICES[target];
+                    const length = distance(START, end);
+                    const drawn = target === newestCut ? newestGrowth : 1;
                     return (
-                        <g key={`dot-${candidate.id}`}>
-                            <circle
-                                cx={centre.x}
-                                cy={centre.y}
-                                r={chosen ? 8 : 6}
-                                fill={chosen ? TEAL : "#FFFFFF"}
-                                stroke={chosen ? "#FFFFFF" : STRUCTURE}
-                                strokeWidth={2}
-                                filter={chosen ? "url(#hexagon-dot-shadow)" : undefined}
-                                style={{ transition: "r 150ms ease-out" }}
-                            />
-                            <circle
-                                cx={centre.x}
-                                cy={centre.y}
-                                r={15}
-                                fill="transparent"
-                                style={{ cursor: "pointer", touchAction: "none" }}
-                                onPointerEnter={() => setPreviewId(candidate.id)}
-                                onPointerLeave={() => setPreviewId(null)}
-                                onClick={() => toggle(candidate.id)}
+                        <g key={`cut-${target}`}>
+                            {cutsActive && (
+                                <line x1={START.x} y1={START.y} x2={end.x} y2={end.y} stroke={TEAL}
+                                    strokeWidth={9} opacity={0.28} strokeLinecap="round" />
+                            )}
+                            <line
+                                x1={START.x}
+                                y1={START.y}
+                                x2={end.x}
+                                y2={end.y}
+                                stroke={TEAL}
+                                strokeWidth={cutsActive ? 4 : 2.5}
+                                strokeLinecap="round"
+                                strokeDasharray={length}
+                                strokeDashoffset={length * (1 - drawn)}
+                                style={{ transition: "stroke-width 150ms ease-out" }}
                             />
                         </g>
                     );
                 })}
             </g>
 
-            {/* Live coverage readout */}
-            <g opacity={recede} style={ease}>
+            {/* Corners still waiting to be cut to */}
+            <g opacity={dim("targets")} style={ease}>
+                {CUT_TARGETS.filter((index) => !cuts.includes(index)).map((index) => {
+                    const corner = HEX_VERTICES[index];
+                    const reachable = pointer !== null && distance(pointer, corner) < 34;
+                    return (
+                        <g key={`target-${index}`}>
+                            <circle cx={corner.x} cy={corner.y} r={reachable ? 12 : 8} fill="#FFFFFF"
+                                stroke={TEAL} strokeWidth={reachable ? 3 : 2} strokeDasharray={reachable ? undefined : "3 3"}
+                                style={{ transition: "r 150ms ease-out" }} />
+                            <circle cx={corner.x} cy={corner.y} r={20} fill="transparent"
+                                style={{ cursor: "pointer", touchAction: "none" }}
+                                onClick={() => addCut(index)} />
+                        </g>
+                    );
+                })}
+            </g>
+
+            {/* The rubber band while a cut is being pulled across */}
+            {pointer && (
+                <line x1={START.x} y1={START.y} x2={pointer.x} y2={pointer.y} stroke={TEAL} strokeWidth={2.5}
+                    strokeLinecap="round" strokeDasharray="6 6" opacity={0.8} />
+            )}
+
+            {/* The starting corner every cut runs from */}
+            <g opacity={dim("start")} style={ease}>
+                {startActive && <circle cx={START.x} cy={START.y} r={22} fill={TEAL} opacity={0.28} />}
+                <circle cx={START.x} cy={START.y} r={11 * startScale} fill={TEAL} stroke="#FFFFFF" strokeWidth="2"
+                    filter="url(#hexagon-cut-shadow)" />
+                <circle
+                    cx={START.x}
+                    cy={START.y}
+                    r={22}
+                    fill="transparent"
+                    style={{ cursor: pointer ? "grabbing" : "grab", touchAction: "none" }}
+                    onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        setPointer(svgPoint(event));
+                    }}
+                    onPointerMove={(event) => {
+                        if (pointer) setPointer(svgPoint(event));
+                    }}
+                    onPointerUp={releaseDrag}
+                    onPointerCancel={() => setPointer(null)}
+                    onPointerEnter={() => {
+                        setHovered(true);
+                        setVar("hexagonViewHighlight", "start");
+                    }}
+                    onPointerLeave={() => {
+                        setHovered(false);
+                        setVar("hexagonViewHighlight", "");
+                    }}
+                />
+            </g>
+
+            {/* Running count */}
+            <g opacity={dim("count")} style={ease}>
                 <text x={HEX_CENTER.x} y={344} textAnchor="middle" fontSize="13" fill={STRUCTURE}
                     style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {`${selection.length} chosen`}
+                    {`${cuts.length} cuts`}
                 </text>
-                <text x={HEX_CENTER.x} y={370} textAnchor="middle" fontSize="13"
-                    fill={INK} fontWeight={perfect ? 700 : 400}
-                    style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {perfect
-                        ? "every part covered exactly once"
-                        : `${formatPercent(coverage.doubled)} doubled · ${formatPercent(coverage.missed)} missed`}
+                <text x={HEX_CENTER.x} y={370} textAnchor="middle" fontSize="13" fill={INK}
+                    fontWeight={complete ? 700 : 400} style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {complete ? "4 triangles, nothing left over" : `${triangleCount} triangles so far`}
                 </text>
             </g>
         </svg>
     );
 }
 
-function HexagonCoverageFigure() {
+function HexagonCutsFigure() {
     const setVar = useSetVar();
     return (
         <Figure
-            id="hexagon-coverage"
-            caption="Each dot marks a triangle hiding in the hexagon. Click a dot to choose that triangle, and click it again to drop it."
+            id="hexagon-cuts"
+            caption="Drag from the teal corner across to a dotted corner to make a cut, one at a time. Each cut slices off one more triangle."
             onReset={() => {
-                setVar("hexagonSelection", "");
-                setVar("hexagonChosenCount", 0);
-                setVar("hexagonCoverOnce", 0);
+                setVar("hexagonCuts", "");
+                setVar("hexagonCutCount", 0);
+                setVar("hexagonTriangleCount", 0);
             }}
         >
-            <HexagonCoverageDrawing />
+            <HexagonCutsDrawing />
             <InteractionHintSequence
-                hintKey="hexagon-coverage-click"
+                hintKey="hexagon-cuts-drag"
                 steps={[
                     {
-                        gesture: "click",
-                        label: "Click a dot to choose that triangle",
-                        position: { x: "67%", y: "35%" },
+                        gesture: "drag",
+                        label: "Drag from the teal corner to a dotted corner",
+                        position: { x: "50%", y: "16%" },
+                        dragPath: { type: "line", startOffset: { x: 0, y: 6 }, endOffset: { x: 42, y: 60 } },
                     },
                 ]}
             />
         </Figure>
     );
 }
-
 
 /* ------------------------------------------------------------------ *
  * Shape quiz — the same rule tested from a hexagon up to a decagon.
@@ -380,35 +353,34 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-setup" maxWidth="xl">
         <Block id="splitting-setup" padding="sm">
             <EditableParagraph id="para-splitting-setup" blockId="splitting-setup">
-                A six-sided tile looks nothing like a triangle, yet it is full of them. Every{" "}
+                A six-sided tile looks nothing like a triangle, yet it is full of them. Drag
+                across the hexagon to slice it, one cut at a time, and watch a fresh triangle
+                sweep in with every cut. Notice that every{" "}
                 <InlineLinkedHighlight
-                    id="highlight-hexagon-grid"
+                    id="highlight-hexagon-start"
                     varName="hexagonViewHighlight"
-                    highlightId="grid"
+                    highlightId="start"
                     {...linkedHighlightPropsFromDefinition(getVariableInfo('hexagonViewHighlight'))}
                 >
-                    faint line
-                </InlineLinkedHighlight>
-                {" "}across this hexagon makes more of them appear, and each dot picks one out.
-                Choose the triangles you think make up the shape, then look for dark patches and
-                white gaps.
+                    cut starts from the same corner
+                </InlineLinkedHighlight>.
             </EditableParagraph>
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-splitting-visual" maxWidth="xl">
         <Block id="splitting-visual" padding="sm" hasVisualization>
-            <HexagonCoverageFigure />
+            <HexagonCutsFigure />
         </Block>
     </StackLayout>,
 
     <StackLayout key="layout-splitting-insight" maxWidth="xl">
         <Block id="splitting-insight" padding="sm">
             <EditableParagraph id="para-splitting-insight" blockId="splitting-insight">
-                Here is the slippery part: plenty of these triangles sit on top of one another, and
-                it is tempting to count them all. The set that works fans out from a single corner
-                and covers every part of the hexagon exactly once, with nothing doubled and nothing
-                missed.
+                Here is the slippery part: plenty of other triangles overlap inside a hexagon, and
+                it is tempting to count them all. Only the pieces made by cuts from one corner
+                count, because those cover the shape exactly once, with nothing doubled and nothing
+                missed. Three cuts, four triangles.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -417,35 +389,35 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
         <Block id="splitting-hexagon-count" padding="sm">
             <EditableParagraph id="para-splitting-hexagon-count" blockId="splitting-hexagon-count">
                 <RevealOnInteraction varName="hexagonExplored">
-                    Fanned out from one corner, a hexagon is covered exactly once by{" "}
+                    Cut from one corner until nothing is left over, a hexagon holds{" "}
                     <InlineFeedback
                         varName="answerHexagonTriangles"
                         correctValue={["4", "four"]}
                         position="terminal"
                         successMessage="— yes, four triangles and not one more"
                         failureMessage="— not quite."
-                        hint="A choice that leaves dark patches has too many triangles, and white gaps mean too few"
+                        hint="Keep cutting until no piece is left with more than three corners, then count the pieces"
                         visualizationHint={{
                             blockId: "splitting-visual",
                             hintKey: "feedback-hexagon-coverage",
                             label: "Discover it yourself",
-                            resetVars: { hexagonSelection: "", hexagonChosenCount: 0, hexagonCoverOnce: 0 },
+                            resetVars: { hexagonCuts: "", hexagonCutCount: 0, hexagonTriangleCount: 0 },
                             steps: [
                                 {
-                                    gesture: "click",
-                                    label: "Click one dot and watch the readout underneath",
-                                    position: { x: "67%", y: "35%" },
-                                    completionVar: "hexagonChosenCount",
+                                    gesture: "drag",
+                                    label: "Drag from the teal corner to a dotted corner to make your first cut",
+                                    position: { x: "50%", y: "16%" },
+                                    completionVar: "hexagonCutCount",
                                     completionValue: 1,
                                     completionTolerance: 0.4,
                                 },
                                 {
-                                    gesture: "click",
-                                    label: "Keep choosing until nothing is doubled and nothing is missed, then count your dots",
-                                    position: { x: "33%", y: "35%" },
-                                    completionVar: "hexagonCoverOnce",
-                                    completionValue: 100,
-                                    completionTolerance: 2,
+                                    gesture: "drag",
+                                    label: "Keep cutting until no piece is left over, then count the triangles",
+                                    position: { x: "50%", y: "16%" },
+                                    completionVar: "hexagonTriangleCount",
+                                    completionValue: 4,
+                                    completionTolerance: 0.4,
                                 },
                             ],
                         }}
