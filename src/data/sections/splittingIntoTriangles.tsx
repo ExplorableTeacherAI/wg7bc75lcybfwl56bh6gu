@@ -7,6 +7,7 @@ import {
     InlineClozeInput,
     InlineFeedback,
     InlineLinkedHighlight,
+    InlineToggle,
     InteractionHintSequence,
     RevealOnInteraction,
 } from "@/components/atoms";
@@ -16,6 +17,7 @@ import {
     getVariableInfo,
     clozePropsFromDefinition,
     linkedHighlightPropsFromDefinition,
+    togglePropsFromDefinition,
 } from "../variables";
 
 /* ------------------------------------------------------------------ *
@@ -306,6 +308,66 @@ function HexagonCoverageFigure() {
     );
 }
 
+
+/* ------------------------------------------------------------------ *
+ * Shape quiz — the same rule tested from a hexagon up to a decagon.
+ * ------------------------------------------------------------------ */
+
+const SHAPE_QUIZ = [
+    { name: "hexagon", sides: 6, varName: "answerQuizHexagon", answer: ["4", "four"] },
+    { name: "heptagon", sides: 7, varName: "answerQuizHeptagon", answer: ["5", "five"] },
+    { name: "octagon", sides: 8, varName: "answerQuizOctagon", answer: ["6", "six"] },
+    { name: "nonagon", sides: 9, varName: "answerQuizNonagon", answer: ["7", "seven"] },
+    { name: "decagon", sides: 10, varName: "answerQuizDecagon", answer: ["8", "eight"] },
+];
+
+function ShapeQuizQuestion() {
+    const name = useVar<string>("quizShapeName", "hexagon");
+    const shape = SHAPE_QUIZ.find((item) => item.name === name) ?? SHAPE_QUIZ[0];
+    return (
+        <>
+            {` has ${shape.sides} sides, so fanned from one corner it splits into `}
+            <InlineFeedback
+                key={shape.name}
+                varName={shape.varName}
+                correctValue={shape.answer}
+                position="terminal"
+                successMessage={`— yes, ${shape.sides} sides give ${shape.answer[0]} triangles`}
+                failureMessage="— not quite."
+                hint="Count the sides, then take two away"
+                reviewBlockId="splitting-visual"
+                reviewLabel="Back to the hexagon"
+            >
+                <InlineClozeInput
+                    varName={shape.varName}
+                    correctAnswer={shape.answer}
+                    {...clozePropsFromDefinition(getVariableInfo(shape.varName))}
+                />
+            </InlineFeedback>
+            {" triangles."}
+        </>
+    );
+}
+
+function ShapeQuizScore() {
+    const hexagon = useVar<string>("answerQuizHexagon", "");
+    const heptagon = useVar<string>("answerQuizHeptagon", "");
+    const octagon = useVar<string>("answerQuizOctagon", "");
+    const nonagon = useVar<string>("answerQuizNonagon", "");
+    const decagon = useVar<string>("answerQuizDecagon", "");
+
+    const given = [hexagon, heptagon, octagon, nonagon, decagon];
+    const solved = SHAPE_QUIZ.filter((shape, index) =>
+        shape.answer.includes(given[index].trim().toLowerCase()),
+    ).length;
+
+    if (solved === 0) return null;
+    if (solved === SHAPE_QUIZ.length) {
+        return <span>{" All five shapes solved, and the rule held every time."}</span>;
+    }
+    return <span>{` Solved so far: ${solved} of 5.`}</span>;
+}
+
 export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-heading" maxWidth="xl">
         <Block id="splitting-heading" padding="md">
@@ -400,28 +462,19 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
         </Block>
     </StackLayout>,
 
-    <StackLayout key="layout-splitting-octagon-count" maxWidth="xl">
-        <Block id="splitting-octagon-count" padding="sm">
-            <EditableParagraph id="para-splitting-octagon-count" blockId="splitting-octagon-count">
-                A pentagon gives three triangles and a hexagon gives four, so an eight-sided shape,
-                fanned the same way, gives{" "}
-                <InlineFeedback
-                    varName="answerOctagonTriangles"
-                    correctValue={["6", "six"]}
-                    position="terminal"
-                    successMessage="— exactly, the count always trails the number of sides by two"
-                    failureMessage="— have another look."
-                    hint="Line the numbers up: 5 sides gives 3, 6 sides gives 4, so what does 8 give"
-                    reviewBlockId="splitting-visual"
-                    reviewLabel="Back to the hexagon"
-                >
-                    <InlineClozeInput
-                        varName="answerOctagonTriangles"
-                        correctAnswer={["6", "six"]}
-                        {...clozePropsFromDefinition(getVariableInfo('answerOctagonTriangles'))}
-                    />
-                </InlineFeedback>
-                {" "}triangles.
+    <StackLayout key="layout-splitting-shape-quiz" maxWidth="xl">
+        <Block id="splitting-shape-quiz" padding="sm">
+            <EditableParagraph id="para-splitting-shape-quiz" blockId="splitting-shape-quiz">
+                The same rule reaches shapes far too big to draw here, from six sides all the way
+                up to ten. The{" "}
+                <InlineToggle
+                    id="toggle-quiz-shape"
+                    varName="quizShapeName"
+                    options={["hexagon", "heptagon", "octagon", "nonagon", "decagon"]}
+                    {...togglePropsFromDefinition(getVariableInfo('quizShapeName'))}
+                />
+                <ShapeQuizQuestion />
+                <ShapeQuizScore />
             </EditableParagraph>
         </Block>
     </StackLayout>,
