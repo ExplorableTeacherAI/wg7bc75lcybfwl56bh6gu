@@ -20,12 +20,7 @@ export const anglesInPolygonsOrientBlocks: ReactElement[] = [
 
     <StackLayout key="layout-orient-promise" maxWidth="xl">
         <Block id="orient-promise" padding="sm">
-            <EditableParagraph id="para-orient-promise" blockId="orient-promise">
-                So here is the question this lesson answers: for a shape with any number of
-                straight sides, how much do all its corners add up to? There is a trick, and it
-                works by cutting the shape into triangles. If you can multiply and subtract small
-                numbers, you already have everything you need.
-            </EditableParagraph>
+            <EditableParagraph id="para-orient-promise" blockId="orient-promise">or a shape with any number of straight sides, how much do all its corners add up to? There is a trick, and it works by cutting the shape into triangles. If you can multiply and subtract small numbers, you already have everything you need.</EditableParagraph>
         </Block>
     </StackLayout>,
 ];
