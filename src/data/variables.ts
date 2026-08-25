@@ -156,6 +156,62 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         color: '#8E90F5',
     },
     // ─────────────────────────────────────────
+    // SECTION 3 — Splitting a Shape into Triangles
+    // ─────────────────────────────────────────
+    hexagonSelection: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Chosen triangles',
+        description: 'Comma separated ids of the triangles the student has chosen inside the hexagon',
+    },
+    hexagonChosenCount: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Triangles chosen',
+        description: 'How many triangles the student has chosen inside the hexagon',
+        min: 0,
+        max: 8,
+        step: 1,
+        color: '#62D0AD',
+    },
+    hexagonCoverOnce: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Covered exactly once',
+        description: 'Percentage of the hexagon covered by exactly one chosen triangle',
+        min: 0,
+        max: 100,
+        step: 1,
+        color: '#62D0AD',
+    },
+    hexagonViewHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Hexagon view highlight',
+        description: 'Which part of the hexagon figure is currently highlighted',
+        color: '#64748B',
+        bgColor: 'rgba(100, 116, 139, 0.15)',
+    },
+    answerHexagonTriangles: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Hexagon triangle count answer',
+        description: 'Student answer for the triangles in a hexagon fanned from one corner',
+        placeholder: '???',
+        correctAnswer: ['4', 'four'],
+        color: '#8E90F5',
+    },
+    answerOctagonTriangles: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Octagon triangle count answer',
+        description: 'Student answer for the triangles in an eight-sided shape',
+        placeholder: '???',
+        correctAnswer: ['6', 'six'],
+        color: '#8E90F5',
+    },
+
+    // ─────────────────────────────────────────
     // SECTION 4 — From Triangle Count to Angle Sum
     // ─────────────────────────────────────────
     polygonSideCount: {
