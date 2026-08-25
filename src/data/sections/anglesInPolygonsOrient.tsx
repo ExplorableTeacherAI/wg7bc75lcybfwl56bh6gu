@@ -14,12 +14,7 @@ export const anglesInPolygonsOrientBlocks: ReactElement[] = [
 
     <StackLayout key="layout-orient-hook" maxWidth="xl">
         <Block id="orient-hook" padding="sm">
-            <EditableParagraph id="para-orient-hook" blockId="orient-hook">
-                Look down at the floor of a shopping centre, or across a bathroom wall, and you
-                will usually find the same few shapes doing all the work: triangles, squares,
-                hexagons. Tilers care about the corners. If the angles meeting at a point do not
-                add up properly, the pattern leaves gaps.
-            </EditableParagraph>
+            <EditableParagraph id="para-orient-hook" blockId="orient-hook"></EditableParagraph>
         </Block>
     </StackLayout>,
 
