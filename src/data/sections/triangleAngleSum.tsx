@@ -407,23 +407,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
 
     <StackLayout key="layout-triangle-sum-insight" maxWidth="xl">
         <Block id="triangle-sum-insight" padding="sm">
-            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">
-                However you reshape it, the{" "}
-                <InlineSpotColor varName="cornerTearTop" {...spotColorPropsFromDefinition(getVariableInfo('cornerTearTop'))}>
-                    teal
-                </InlineSpotColor>
-                ,{" "}
-                <InlineSpotColor varName="cornerTearLeft" {...spotColorPropsFromDefinition(getVariableInfo('cornerTearLeft'))}>
-                    indigo
-                </InlineSpotColor>
-                {" "}and{" "}
-                <InlineSpotColor varName="cornerTearRight" {...spotColorPropsFromDefinition(getVariableInfo('cornerTearRight'))}>
-                    violet
-                </InlineSpotColor>
-                {" "}pieces fill the line exactly, with no gap and no overlap. A straight line is
-                180 degrees, so the three angles of any triangle must total 180. That one stubborn
-                fact is the engine behind everything else in this lesson.
-            </EditableParagraph>
+            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">However you reshape it, the <InlineSpotColor varName={"cornerTearTop"} color={"#62D0AD"} id={"spotColor-1787651960312-t5vuf"}>teal</InlineSpotColor>, <InlineSpotColor varName={"cornerTearLeft"} color={"#8E90F5"} id={"spotColor-1787651960312-bpzja"}>indigo</InlineSpotColor> and <InlineSpotColor varName={"cornerTearRight"} color={"#AC8BF9"} id={"spotColor-1787651960312-8dyzg"}>violet</InlineSpotColor> pieces fill the line exactly, with no gap and no overlap. A straight line is 180 degrees, so the three angles of any triangle must total 180.</EditableParagraph>
         </Block>
     </StackLayout>,
 
