@@ -25,12 +25,7 @@ export const wrappingUpBlocks: ReactElement[] = [
 
     <StackLayout key="layout-wrapping-up-next" maxWidth="xl">
         <Block id="wrapping-up-next" padding="sm">
-            <EditableParagraph id="para-wrapping-up-next" blockId="wrapping-up-next">
-                That is the whole trick, and it is why a tiler can plan a floor on paper before
-                cutting anything. Next comes a single corner rather than the whole shape: when
-                every corner of a polygon is identical, one angle is simply the total shared out
-                evenly.
-            </EditableParagraph>
+            <EditableParagraph id="para-wrapping-up-next" blockId="wrapping-up-next"></EditableParagraph>
         </Block>
     </StackLayout>,
 ];
