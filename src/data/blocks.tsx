@@ -84,6 +84,16 @@ initializeVariableColors(variableDefinitions);
  * check your .env file and set VITE_SHOW_EXAMPLES=false.
  */
 
+import { anglesInPolygonsOrientBlocks } from "./sections/anglesInPolygonsOrient";
+import { triangleAngleSumBlocks } from "./sections/triangleAngleSum";
+import { splittingIntoTrianglesBlocks } from "./sections/splittingIntoTriangles";
+import { triangleCountToAngleSumBlocks } from "./sections/triangleCountToAngleSum";
+import { wrappingUpBlocks } from "./sections/wrappingUp";
+
 export const blocks: ReactElement[] = [
-    // Start adding your blocks here!
+    ...anglesInPolygonsOrientBlocks,
+    ...triangleAngleSumBlocks,
+    ...splittingIntoTrianglesBlocks,
+    ...triangleCountToAngleSumBlocks,
+    ...wrappingUpBlocks,
 ];
