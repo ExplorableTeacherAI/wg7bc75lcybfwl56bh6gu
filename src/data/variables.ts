@@ -85,6 +85,87 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
     // ADD YOUR VARIABLES HERE
     // ========================================
 
+    // ─────────────────────────────────────────
+    // SECTION 2 — Every Triangle Adds to 180
+    // ─────────────────────────────────────────
+    triangleApexX: {
+        defaultValue: 280,
+        type: 'number',
+        label: 'Triangle apex x',
+        description: 'Horizontal position of the draggable top corner of the triangle',
+        min: 70,
+        max: 490,
+        step: 1,
+        color: '#62D0AD',
+    },
+    triangleApexY: {
+        defaultValue: 118,
+        type: 'number',
+        label: 'Triangle apex y',
+        description: 'Vertical position of the draggable top corner of the triangle',
+        min: 70,
+        max: 200,
+        step: 1,
+        color: '#62D0AD',
+    },
+    cornerTearTop: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Top corner torn off',
+        description: 'How far the top corner piece has been dragged to the line (0 to 1)',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        color: '#62D0AD',
+    },
+    cornerTearLeft: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Left corner torn off',
+        description: 'How far the left corner piece has been dragged to the line (0 to 1)',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        color: '#8E90F5',
+    },
+    cornerTearRight: {
+        defaultValue: 0,
+        type: 'number',
+        label: 'Right corner torn off',
+        description: 'How far the right corner piece has been dragged to the line (0 to 1)',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        color: '#AC8BF9',
+    },
+    triangleCornerHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Triangle corner highlight',
+        description: 'Which part of the triangle figure is currently highlighted',
+        color: '#62D0AD',
+        bgColor: 'rgba(98, 208, 173, 0.15)',
+    },
+    answerTriangleThirdAngle: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Third angle answer',
+        description: 'Student answer for the missing third angle of a triangle',
+        placeholder: '???',
+        correctAnswer: ['80', '80°', '80 degrees'],
+        color: '#8E90F5',
+    },
+    answerTriangleStretch: {
+        defaultValue: '',
+        type: 'select',
+        label: 'Stretched triangle answer',
+        description: 'Student answer about the angle total of a long thin triangle',
+        placeholder: '???',
+        options: ['still total 180 degrees', 'total more than 180 degrees', 'total less than 180 degrees'],
+        correctAnswer: 'still total 180 degrees',
+        color: '#8E90F5',
+    },
+
     // Uncomment and modify these examples for your lesson:
 
     /*
