@@ -155,6 +155,45 @@ export const variableDefinitions: Record<string, VariableDefinition> = {
         correctAnswer: ['80', '80°', '80 degrees'],
         color: '#8E90F5',
     },
+    // ─────────────────────────────────────────
+    // SECTION 4 — From Triangle Count to Angle Sum
+    // ─────────────────────────────────────────
+    polygonSideCount: {
+        defaultValue: 5,
+        type: 'number',
+        label: 'Number of sides',
+        description: 'How many sides the polygon has, shared by the shape and the graph',
+        min: 3,
+        max: 12,
+        step: 1,
+        color: '#62D0AD',
+    },
+    polygonViewHighlight: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Polygon view highlight',
+        description: 'Which part of the linked polygon and graph views is highlighted',
+        color: '#62D0AD',
+        bgColor: 'rgba(98, 208, 173, 0.15)',
+    },
+    answerPolygonTriangleCount: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Triangle count answer',
+        description: 'Student answer for the triangles inside a 20-sided shape',
+        placeholder: '???',
+        correctAnswer: ['18', 'eighteen'],
+        color: '#8E90F5',
+    },
+    answerPolygonAngleTotal: {
+        defaultValue: '',
+        type: 'text',
+        label: 'Angle total answer',
+        description: 'Student answer for the angle total of a 20-sided shape',
+        placeholder: '???',
+        correctAnswer: ['3240', '3240°', '3240 degrees'],
+        color: '#8E90F5',
+    },
     answerTriangleStretch: {
         defaultValue: '',
         type: 'select',
