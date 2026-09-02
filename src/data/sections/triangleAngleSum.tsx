@@ -9,10 +9,12 @@ import {
     InlineFeedback,
     InlineLinkedHighlight,
     InlineSpotColor,
+    InlineTooltip,
+    InlineTrigger,
     InteractionHintSequence,
     RevealOnInteraction,
 } from "@/components/atoms";
-import { Figure } from "@/components/molecules";
+import { Figure, FormulaBlock } from "@/components/molecules";
 import { useVar, useSetVar } from "@/stores";
 import { clamp, useSpring } from "@/lib/motion";
 import {
@@ -20,6 +22,8 @@ import {
     clozePropsFromDefinition,
     choicePropsFromDefinition,
     linkedHighlightPropsFromDefinition,
+    spotColorPropsFromDefinition,
+    scrubVarsFromDefinitions,
 } from "../variables";
 
 /* ------------------------------------------------------------------ *
@@ -181,6 +185,19 @@ function TriangleCornerTearDrawing() {
     const tearLeftRaw = useVar<number>("cornerTearLeft", 0);
     const tearRightRaw = useVar<number>("cornerTearRight", 0);
     const highlight = useVar<string>("triangleCornerHighlight", "");
+
+    // The two base corners can never eat the whole 180, and the top corner is
+    // published to the store so the formula below can read it.
+    useEffect(() => {
+        if (leftAngle + rightAngle > MAX_BASE_PAIR) {
+            const nextRight = clamp(MAX_BASE_PAIR - leftAngle, MIN_ANGLE, MAX_ANGLE);
+            const nextLeft = clamp(MAX_BASE_PAIR - nextRight, MIN_ANGLE, MAX_ANGLE);
+            if (nextRight !== rightAngle) setVar("triangleAngleRight", nextRight);
+            if (nextLeft !== leftAngle) setVar("triangleAngleLeft", nextLeft);
+            return;
+        }
+        setVar("triangleAngleTop", 180 - Math.round(leftAngle) - Math.round(rightAngle));
+    }, [setVar, leftAngle, rightAngle]);
 
     const svgRef = useRef<SVGSVGElement>(null);
     const orderRef = useRef<string[]>([]);
@@ -482,7 +499,7 @@ function TriangleAngleControls() {
                 partnerVarName="triangleAngleRight" partnerValue={Math.round(rightAngle)} />
             <AngleField varName="triangleAngleRight" label="Right corner" color={VIOLET}
                 partnerVarName="triangleAngleLeft" partnerValue={Math.round(leftAngle)} />
-            <AngleField varName="triangleAngleTopReadout" label="Top corner" color={TEAL}
+            <AngleField varName="triangleAngleTop" label="Top corner" color={TEAL}
                 readOnlyValue={180 - Math.round(leftAngle) - Math.round(rightAngle)} />
         </div>
     );
@@ -523,9 +540,18 @@ export const triangleAngleSumBlocks: ReactElement[] = [
         </Block>
     </StackLayout>,
 
+    <StackLayout key="layout-triangle-sum-formula" maxWidth="xl">
+        <Block id="triangle-sum-formula" padding="lg">
+            <FormulaBlock
+                latex="\val{triangleAngleTop}^\circ + \scrub{triangleAngleLeft}^\circ + \scrub{triangleAngleRight}^\circ = 180^\circ"
+                variables={scrubVarsFromDefinitions(['triangleAngleTop', 'triangleAngleLeft', 'triangleAngleRight'])}
+            />
+        </Block>
+    </StackLayout>,
+
     <StackLayout key="layout-triangle-sum-insight" maxWidth="xl">
         <Block id="triangle-sum-insight" padding="sm">
-            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">However you reshape it, the <InlineSpotColor varName={"cornerTearTop"} color={"#62D0AD"} id={"spotColor-1787651960312-t5vuf"}>teal</InlineSpotColor>, <InlineSpotColor varName={"cornerTearLeft"} color={"#8E90F5"} id={"spotColor-1787651960312-bpzja"}>indigo</InlineSpotColor> and <InlineSpotColor varName={"cornerTearRight"} color={"#AC8BF9"} id={"spotColor-1787651960312-8dyzg"}>violet</InlineSpotColor> pieces fill the line exactly, with no gap and no overlap. A straight line is 180 degrees, so the three angles of any triangle must total 180.</EditableParagraph>
+            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">However you reshape it, the <InlineSpotColor varName={"cornerTearTop"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearTop'))} id={"spotColor-1787651960312-t5vuf"}>teal</InlineSpotColor>, <InlineSpotColor varName={"cornerTearLeft"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearLeft'))} id={"spotColor-1787651960312-bpzja"}>indigo</InlineSpotColor> and <InlineSpotColor varName={"cornerTearRight"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearRight'))} id={"spotColor-1787651960312-8dyzg"}>violet</InlineSpotColor> pieces fill the line exactly, with no gap and no overlap. A <InlineTooltip id="tooltip-straight-angle" tooltip="A straight angle: the angle you turn through along a straight line, which is two right angles side by side.">straight line</InlineTooltip> is 180 degrees, so the three angles of any triangle must total 180. Tilt it into a <InlineTrigger id="trigger-right-angled" varName="triangleAngleLeft" value={90} icon="zap">right-angled triangle</InlineTrigger> and the other two corners share the 90 degrees left over.</EditableParagraph>
         </Block>
     </StackLayout>,
 

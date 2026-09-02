@@ -8,10 +8,11 @@ import {
     InlineFeedback,
     InlineLinkedHighlight,
     InlineToggle,
+    InlineTooltip,
     InteractionHintSequence,
     RevealOnInteraction,
 } from "@/components/atoms";
-import { Figure } from "@/components/molecules";
+import { Figure, FormulaBlock } from "@/components/molecules";
 import { useVar, useSetVar } from "@/stores";
 import { clamp, useSpring } from "@/lib/motion";
 import {
@@ -31,7 +32,8 @@ const HEX_CENTER = { x: 200, y: 180 };
 const HEX_RADIUS = 118;
 const CUT_TARGETS = [2, 3, 4];
 
-const TEAL = "#62D0AD";
+const TEAL = "#62D0AD";     // the cuts the student makes
+const VIOLET = "#AC8BF9";   // the triangles those cuts produce
 const INK = "#334155";
 const STRUCTURE = "#64748B";
 const PAPER = "#F1F5F9";
@@ -134,7 +136,7 @@ function HexagonCutsDrawing() {
                         <polygon
                             key={`region-${region.from}-${region.to}`}
                             points={pointsAttribute(region.corners)}
-                            fill={region.isTriangle ? TEAL : PAPER}
+                            fill={region.isTriangle ? VIOLET : PAPER}
                             fillOpacity={region.isTriangle ? (index % 2 === 0 ? 0.22 : 0.34) : 1}
                             opacity={touchesNewest ? newestGrowth : 1}
                         />
@@ -241,11 +243,11 @@ function HexagonCutsDrawing() {
 
             {/* Running count */}
             <g opacity={dim("count")} style={ease}>
-                <text x={HEX_CENTER.x} y={344} textAnchor="middle" fontSize="13" fill={STRUCTURE}
+                <text x={HEX_CENTER.x} y={344} textAnchor="middle" fontSize="13" fill={TEAL}
                     style={{ fontVariantNumeric: "tabular-nums" }}>
                     {`${cuts.length} cuts`}
                 </text>
-                <text x={HEX_CENTER.x} y={370} textAnchor="middle" fontSize="13" fill={INK}
+                <text x={HEX_CENTER.x} y={370} textAnchor="middle" fontSize="13" fill={VIOLET}
                     fontWeight={complete ? 700 : 400} style={{ fontVariantNumeric: "tabular-nums" }}>
                     {complete ? "4 triangles, nothing left over" : `${triangleCount} triangles so far`}
                 </text>
@@ -354,8 +356,11 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
         <Block id="splitting-setup" padding="sm">
             <EditableParagraph id="para-splitting-setup" blockId="splitting-setup">
                 A six-sided tile looks nothing like a triangle, yet it is full of them. Drag
-                across the hexagon to slice it, one cut at a time, and watch a fresh triangle
-                sweep in with every cut. Notice that every{" "}
+                across the hexagon to slice it along a{" "}
+                <InlineTooltip id="tooltip-diagonal" tooltip="A diagonal: a straight line joining two corners of a shape that are not next to each other.">
+                    diagonal
+                </InlineTooltip>
+                , one cut at a time, and watch a fresh triangle sweep in with every cut. Notice that every{" "}
                 <InlineLinkedHighlight
                     id="highlight-hexagon-start"
                     varName="hexagonViewHighlight"
@@ -431,6 +436,23 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
                     {" "}triangles.
                 </RevealOnInteraction>
             </EditableParagraph>
+        </Block>
+    </StackLayout>,
+
+    <StackLayout key="layout-splitting-rule-formula" maxWidth="xl">
+        <Block id="splitting-rule-formula" padding="lg">
+            <FormulaBlock
+                latex="\textcolor{#AC8BF9}{\text{triangles}} = \textcolor{#334155}{\text{sides}} - \choice{answerRuleSubtract}"
+                clozeChoices={{
+                    answerRuleSubtract: {
+                        correctAnswer: '2',
+                        options: ['1', '2', '3'],
+                        placeholder: '???',
+                        color: '#F8A0CD',
+                        bgColor: 'rgba(248, 160, 205, 0.15)',
+                    },
+                }}
+            />
         </Block>
     </StackLayout>,
 

@@ -27,8 +27,8 @@ export const wrappingUpBlocks: ReactElement[] = [
     <StackLayout key="layout-wrapping-up-formula" maxWidth="xl">
         <Block id="wrapping-up-formula" padding="lg">
             <FormulaBlock
-                latex="\text{angle sum} = (\scrub{polygonSideCount} - 2) \times 180^\circ"
-                variables={scrubVarsFromDefinitions(['polygonSideCount'])}
+                latex="\textcolor{#8E90F5}{\text{angle sum}} = (\scrub{polygonSideCount} - 2) \times 180^\circ = \val{polygonAngleTotal}^\circ"
+                variables={scrubVarsFromDefinitions(['polygonSideCount', 'polygonAngleTotal'])}
             />
         </Block>
     </StackLayout>,
