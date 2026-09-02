@@ -464,7 +464,7 @@ function TriangleCornerTearFigure() {
     return (
         <Figure
             id="triangle-corner-tear"
-            caption="Drag each shaded corner down onto the line. Reshape the triangle by dragging the teal top point, or by typing corner sizes below."
+            caption="Drag each shaded interior angle down onto the line. Reshape the triangle by dragging the teal apex, or by typing angle measures below."
             onReset={() => {
                 setVar("triangleAngleLeft", 55);
                 setVar("triangleAngleRight", 65);
@@ -480,7 +480,7 @@ function TriangleCornerTearFigure() {
                 steps={[
                     {
                         gesture: "drag-vertical",
-                        label: "Drag the teal corner down to the line",
+                        label: "Drag the teal apex angle down to the line",
                         position: { x: "54%", y: "21%" },
                         dragPath: { type: "line", startOffset: { x: 0, y: -14 }, endOffset: { x: 0, y: 34 } },
                     },
@@ -495,11 +495,11 @@ function TriangleAngleControls() {
     const rightAngle = useVar<number>("triangleAngleRight", 65);
     return (
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-6 pb-5">
-            <AngleField varName="triangleAngleLeft" label="Left corner" color={INDIGO}
+            <AngleField varName="triangleAngleLeft" label="Left base angle" color={INDIGO}
                 partnerVarName="triangleAngleRight" partnerValue={Math.round(rightAngle)} />
-            <AngleField varName="triangleAngleRight" label="Right corner" color={VIOLET}
+            <AngleField varName="triangleAngleRight" label="Right base angle" color={VIOLET}
                 partnerVarName="triangleAngleLeft" partnerValue={Math.round(leftAngle)} />
-            <AngleField varName="triangleAngleTop" label="Top corner" color={TEAL}
+            <AngleField varName="triangleAngleTop" label="Apex angle" color={TEAL}
                 readOnlyValue={180 - Math.round(leftAngle) - Math.round(rightAngle)} />
         </div>
     );
@@ -509,7 +509,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-triangle-sum-heading" maxWidth="xl">
         <Block id="triangle-sum-heading" padding="md">
             <EditableH2 id="h2-triangle-sum-heading" blockId="triangle-sum-heading">
-                Every Triangle Adds to 180
+                The Triangle Angle Sum Theorem
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -517,19 +517,19 @@ export const triangleAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-triangle-sum-setup" maxWidth="xl">
         <Block id="triangle-sum-setup" padding="sm">
             <EditableParagraph id="para-triangle-sum-setup" blockId="triangle-sum-setup">
-                Every tiled pattern is built from corners, so start with the simplest shape that
-                has any: a triangle. Each of its three shaded corners tears off and slides down
-                onto the grey line beneath it. Bring all three down, then pull the{" "}
+                Start with the simplest polygon of all: a triangle, with three vertices and three
+                interior angles. Each shaded angle tears off its vertex and slides down onto the
+                line beneath. Bring all three down, then pull the{" "}
                 <InlineLinkedHighlight
                     id="highlight-triangle-apex"
                     varName="triangleCornerHighlight"
                     highlightId="apex"
                     {...linkedHighlightPropsFromDefinition(getVariableInfo('triangleCornerHighlight'))}
                 >
-                    teal top point
+                    teal apex
                 </InlineLinkedHighlight>
-                {" "}around, or type new corner sizes under the picture, and watch what the pieces
-                do.
+                {" "}around, or type new angle measures under the figure, and watch what the
+                sectors do.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -551,7 +551,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
 
     <StackLayout key="layout-triangle-sum-insight" maxWidth="xl">
         <Block id="triangle-sum-insight" padding="sm">
-            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">However you reshape it, the <InlineSpotColor varName={"cornerTearTop"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearTop'))} id={"spotColor-1787651960312-t5vuf"}>teal</InlineSpotColor>, <InlineSpotColor varName={"cornerTearLeft"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearLeft'))} id={"spotColor-1787651960312-bpzja"}>indigo</InlineSpotColor> and <InlineSpotColor varName={"cornerTearRight"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearRight'))} id={"spotColor-1787651960312-8dyzg"}>violet</InlineSpotColor> pieces fill the line exactly, with no gap and no overlap. A <InlineTooltip id="tooltip-straight-angle" tooltip="A straight angle: the angle you turn through along a straight line, which is two right angles side by side.">straight line</InlineTooltip> is 180 degrees, so the three angles of any triangle must total 180. Tilt it into a <InlineTrigger id="trigger-right-angled" varName="triangleAngleLeft" value={90} icon="zap">right-angled triangle</InlineTrigger> and the other two corners share the 90 degrees left over.</EditableParagraph>
+            <EditableParagraph id="para-triangle-sum-insight" blockId="triangle-sum-insight">However you reshape the triangle, the <InlineSpotColor varName={"cornerTearTop"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearTop'))} id={"spotColor-1787651960312-t5vuf"}>teal</InlineSpotColor>, <InlineSpotColor varName={"cornerTearLeft"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearLeft'))} id={"spotColor-1787651960312-bpzja"}>indigo</InlineSpotColor> and <InlineSpotColor varName={"cornerTearRight"} {...spotColorPropsFromDefinition(getVariableInfo('cornerTearRight'))} id={"spotColor-1787651960312-8dyzg"}>violet</InlineSpotColor> sectors tile the line exactly, with no gap and no overlap. Angles on a line make a <InlineTooltip id="tooltip-straight-angle" tooltip="A straight angle: a half turn of 180 degrees, equal to two right angles placed side by side.">straight angle</InlineTooltip> of 180 degrees, so the interior angles of any triangle sum to 180 degrees. Snap it to a <InlineTrigger id="trigger-right-angled" varName="triangleAngleLeft" value={90} icon="zap">right-angled triangle</InlineTrigger> and the remaining two angles are <InlineTooltip id="tooltip-complementary" tooltip="Complementary angles: two angles that add up to 90 degrees.">complementary</InlineTooltip>, sharing the 90 degrees left over.</EditableParagraph>
         </Block>
     </StackLayout>,
 
@@ -559,15 +559,15 @@ export const triangleAngleSumBlocks: ReactElement[] = [
         <Block id="triangle-sum-third-angle" padding="sm">
             <EditableParagraph id="para-triangle-sum-third-angle" blockId="triangle-sum-third-angle">
                 <RevealOnInteraction varName="triangleTearExplored">
-                    A triangle has corners of 35 degrees and 65 degrees, so its third corner has
-                    to be{" "}
+                    A triangle has interior angles of 35 degrees and 65 degrees, so its third
+                    angle measures{" "}
                     <InlineFeedback
                         varName="answerTriangleThirdAngle"
                         correctValue={["80", "80°", "80 degrees"]}
                         position="terminal"
-                        successMessage="— exactly, because 35 and 65 use up 100 of the 180, leaving 80 for the last corner"
+                        successMessage="— exactly, because 35 and 65 account for 100 of the 180, leaving 80 for the third angle"
                         failureMessage="— not quite."
-                        hint="The three corners share 180 degrees between them, so take the two you know away from 180"
+                        hint="The three interior angles share 180 degrees between them, so subtract the two you know from 180"
                         visualizationHint={{
                             blockId: "triangle-sum-visual",
                             hintKey: "feedback-triangle-corner-tear",
@@ -576,7 +576,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                             steps: [
                                 {
                                     gesture: "drag-vertical",
-                                    label: "Drag the indigo corner down to the line",
+                                    label: "Drag the indigo base angle down to the line",
                                     position: { x: "32%", y: "66%" },
                                     completionVar: "cornerTearLeft",
                                     completionValue: 1,
@@ -584,7 +584,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                                 },
                                 {
                                     gesture: "drag-vertical",
-                                    label: "Bring the violet corner down beside it",
+                                    label: "Bring the violet base angle down beside it",
                                     position: { x: "68%", y: "66%" },
                                     completionVar: "cornerTearRight",
                                     completionValue: 1,
@@ -592,7 +592,7 @@ export const triangleAngleSumBlocks: ReactElement[] = [
                                 },
                                 {
                                     gesture: "drag-vertical",
-                                    label: "Now the teal corner — it fills exactly the gap that is left",
+                                    label: "Now the teal apex angle — it fills exactly the gap that is left",
                                     position: { x: "54%", y: "21%" },
                                     completionVar: "cornerTearTop",
                                     completionValue: 1,
@@ -616,15 +616,15 @@ export const triangleAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-triangle-sum-stretch" maxWidth="xl">
         <Block id="triangle-sum-stretch" padding="sm">
             <EditableParagraph id="para-triangle-sum-stretch" blockId="triangle-sum-stretch">
-                Stretch a triangle until it is so long and thin it almost looks flat, and its
-                three angles{" "}
+                Stretch a triangle until it is so long and thin it looks almost degenerate, and
+                its three interior angles{" "}
                 <InlineFeedback
                     varName="answerTriangleStretch"
                     correctValue="still total 180 degrees"
                     position="terminal"
-                    successMessage="— right, the corners trade sizes with each other but the total never moves"
+                    successMessage="— right, the angles trade measure with each other but the sum is invariant"
                     failureMessage="— have another look."
-                    hint="Try dragging the top point far out to one side and read the running total"
+                    hint="Try dragging the apex far out to one side and read the running sum"
                     reviewBlockId="triangle-sum-visual"
                     reviewLabel="Back to the triangle"
                 >

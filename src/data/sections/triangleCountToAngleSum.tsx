@@ -355,7 +355,7 @@ function FannedPolygonFigure() {
     return (
         <Figure
             id="fanned-polygon"
-            caption="Drag the teal point around the rim to add or remove sides. The shape always fans into two fewer triangles than it has sides."
+            caption="Drag the teal vertex around the rim to add or remove sides. The polygon always triangulates into two fewer triangles than it has sides."
             onReset={() => setVar("polygonSideCount", 5)}
         >
             <FannedPolygonDrawing />
@@ -364,7 +364,7 @@ function FannedPolygonFigure() {
                 steps={[
                     {
                         gesture: "drag-circular",
-                        label: "Drag the teal point around the rim",
+                        label: "Drag the teal vertex around the rim",
                         position: { x: "77%", y: "40%" },
                         dragPath: { type: "arc", startAngle: -30, endAngle: 40, radius: 34 },
                     },
@@ -378,7 +378,7 @@ function AngleTotalGraphFigure() {
     return (
         <Figure
             id="angle-total-graph"
-            caption="The same shape, plotted. Drag the indigo dot sideways to change the number of sides and watch the total climb one 180 step at a time."
+            caption="The same polygon, plotted. Drag the indigo dot sideways to change n and watch the angle sum climb in steps of 180 degrees."
         >
             <AngleTotalGraphDrawing />
             <InteractionHintSequence
@@ -419,7 +419,7 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-angle-sum-heading" maxWidth="xl">
         <Block id="angle-sum-heading" padding="md">
             <EditableH2 id="h2-angle-sum-heading" blockId="angle-sum-heading">
-                From Triangle Count to Angle Sum
+                Deriving the (n − 2) × 180° Formula
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -427,9 +427,9 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-angle-sum-setup" maxWidth="xl">
         <Block id="angle-sum-setup" padding="sm">
             <EditableParagraph id="para-angle-sum-setup" blockId="angle-sum-setup">
-                A pentagon splits into three triangles, each carrying its own 180 degrees, so its
-                five corners total 540. Drag the teal point around the rim to add and remove
-                sides, and watch the{" "}
+                A pentagon triangulates into three triangles, each carrying its own 180 degrees,
+                so its five interior angles sum to 540. Drag the teal vertex around the rim to add
+                and remove sides, and watch the{" "}
                 <InlineLinkedHighlight
                     id="highlight-polygon-fan"
                     varName="polygonViewHighlight"
@@ -475,7 +475,11 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
                 >
                     sides
                 </InlineLinkedHighlight>
-                , subtract two, multiply by 180. A shape with{" "}
+                , subtract two, multiply by 180. A{" "}
+                <InlineTooltip id="tooltip-convex-polygon" tooltip="A convex polygon: one with no dents, so every diagonal drawn from a vertex stays inside the shape.">
+                    convex
+                </InlineTooltip>
+                {" "}polygon with{" "}
                 <InlineScrubbleNumber
                     varName="polygonSideCount"
                     {...numberPropsFromDefinition(getVariableInfo('polygonSideCount'))}
@@ -496,12 +500,12 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
                 >
                     degrees
                 </InlineSpotColor>
-                , because every triangle sits on one side of the shape except the two sides
-                meeting at the corner you{" "}
-                <InlineTooltip id="tooltip-fan" tooltip="Fanning: drawing every diagonal from a single corner, so the shape splits into triangles that cover it exactly once.">
-                    fan from
+                , because each triangle rests on one side of the polygon except the two sides
+                meeting at the vertex you{" "}
+                <InlineTooltip id="tooltip-fan" tooltip="Triangulating from a vertex: drawing every diagonal from that one vertex, so the polygon splits into triangles covering it exactly once.">
+                    triangulate from
                 </InlineTooltip>
-                . The same rule handles{" "}
+                . The same derivation handles{" "}
                 <InlineTrigger id="trigger-sides-triangle" varName="polygonSideCount" value={3}>
                     a triangle
                 </InlineTrigger>
@@ -509,7 +513,7 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
                 <InlineTrigger id="trigger-sides-hexagon" varName="polygonSideCount" value={6} icon="none">
                     a hexagon
                 </InlineTrigger>
-                , or a shape with a hundred sides.
+                , or a 100-gon.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -526,15 +530,15 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-angle-sum-triangle-count" maxWidth="xl">
         <Block id="angle-sum-triangle-count" padding="sm">
             <EditableParagraph id="para-angle-sum-triangle-count" blockId="angle-sum-triangle-count">
-                A road sign with 20 straight sides is far too big for the diagram, but the rule
-                still holds: fanned from one corner it breaks into{" "}
+                A 20-gon is far too big for the diagram, but the derivation still holds:
+                triangulated from one vertex it decomposes into{" "}
                 <InlineFeedback
                     varName="answerPolygonTriangleCount"
                     correctValue={["18", "eighteen"]}
                     position="terminal"
-                    successMessage="— yes, always two fewer triangles than sides"
+                    successMessage="— yes, the triangulation always has two fewer triangles than the polygon has sides"
                     failureMessage="— not quite."
-                    hint="Compare the two numbers in the shape as you change it: sides, and triangles"
+                    hint="Compare the two readouts as you reshape the polygon: n, and the triangle count"
                     visualizationHint={{
                         blockId: "angle-sum-visual",
                         hintKey: "feedback-fanned-polygon",
@@ -543,7 +547,7 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
                         steps: [
                             {
                                 gesture: "drag-circular",
-                                label: "Drag the teal point until the shape has 7 sides — count the shaded triangles",
+                                label: "Drag the teal vertex until the polygon has 7 sides — count the shaded triangles",
                                 position: { x: "78%", y: "49%" },
                                 completionVar: "polygonSideCount",
                                 completionValue: 7,
@@ -551,7 +555,7 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
                             },
                             {
                                 gesture: "drag-circular",
-                                label: "Now stretch it to 11 sides — the triangle count stays two behind",
+                                label: "Now extend it to 11 sides — the triangle count stays two behind n",
                                 position: { x: "72%", y: "31%" },
                                 completionVar: "polygonSideCount",
                                 completionValue: 11,
@@ -574,8 +578,8 @@ export const triangleCountToAngleSumBlocks: ReactElement[] = [
     <StackLayout key="layout-angle-sum-total" maxWidth="xl">
         <Block id="angle-sum-total" padding="sm">
             <EditableParagraph id="para-angle-sum-total" blockId="angle-sum-total">
-                Every one of those triangles brings 180 degrees, so the corners of that 20-sided
-                sign total{" "}
+                Every one of those triangles contributes 180 degrees, so the interior angles of
+                that 20-gon sum to{" "}
                 <InlineFeedback
                     varName="answerPolygonAngleTotal"
                     correctValue={["3240", "3240°", "3240 degrees"]}

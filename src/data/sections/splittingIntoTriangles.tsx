@@ -245,7 +245,7 @@ function HexagonCutsDrawing() {
             <g opacity={dim("count")} style={ease}>
                 <text x={HEX_CENTER.x} y={344} textAnchor="middle" fontSize="13" fill={TEAL}
                     style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {`${cuts.length} cuts`}
+                    {`${cuts.length} diagonal${cuts.length === 1 ? "" : "s"}`}
                 </text>
                 <text x={HEX_CENTER.x} y={370} textAnchor="middle" fontSize="13" fill={VIOLET}
                     fontWeight={complete ? 700 : 400} style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -261,7 +261,7 @@ function HexagonCutsFigure() {
     return (
         <Figure
             id="hexagon-cuts"
-            caption="Drag from the teal corner across to a dotted corner to make a cut, one at a time. Each cut slices off one more triangle."
+            caption="Drag from the teal vertex across to a dotted vertex to draw a diagonal, one at a time. Each diagonal slices off one more triangle."
             onReset={() => {
                 setVar("hexagonCuts", "");
                 setVar("hexagonCutCount", 0);
@@ -274,7 +274,7 @@ function HexagonCutsFigure() {
                 steps={[
                     {
                         gesture: "drag",
-                        label: "Drag from the teal corner to a dotted corner",
+                        label: "Drag from the teal vertex to a dotted vertex",
                         position: { x: "50%", y: "16%" },
                         dragPath: { type: "line", startOffset: { x: 0, y: 6 }, endOffset: { x: 42, y: 60 } },
                     },
@@ -301,15 +301,15 @@ function ShapeQuizQuestion() {
     const shape = SHAPE_QUIZ.find((item) => item.name === name) ?? SHAPE_QUIZ[0];
     return (
         <>
-            {` has ${shape.sides} sides, so fanned from one corner it splits into `}
+            {` has ${shape.sides} sides, so triangulated from one vertex it decomposes into `}
             <InlineFeedback
                 key={shape.name}
                 varName={shape.varName}
                 correctValue={shape.answer}
                 position="terminal"
-                successMessage={`— yes, ${shape.sides} sides give ${shape.answer[0]} triangles`}
+                successMessage={`— yes, n = ${shape.sides} gives ${shape.answer[0]} triangles`}
                 failureMessage="— not quite."
-                hint="Count the sides, then take two away"
+                hint="Count the sides, then subtract two"
                 reviewBlockId="splitting-visual"
                 reviewLabel="Back to the hexagon"
             >
@@ -347,7 +347,7 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-heading" maxWidth="xl">
         <Block id="splitting-heading" padding="md">
             <EditableH2 id="h2-splitting-heading" blockId="splitting-heading">
-                Splitting a Shape into Triangles
+                Triangulating a Polygon from One Vertex
             </EditableH2>
         </Block>
     </StackLayout>,
@@ -355,19 +355,19 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-setup" maxWidth="xl">
         <Block id="splitting-setup" padding="sm">
             <EditableParagraph id="para-splitting-setup" blockId="splitting-setup">
-                A six-sided tile looks nothing like a triangle, yet it is full of them. Drag
-                across the hexagon to slice it along a{" "}
-                <InlineTooltip id="tooltip-diagonal" tooltip="A diagonal: a straight line joining two corners of a shape that are not next to each other.">
+                A hexagon looks nothing like a triangle, yet it decomposes into them. Drag across
+                the hexagon to draw a{" "}
+                <InlineTooltip id="tooltip-diagonal" tooltip="A diagonal: a line segment joining two vertices of a polygon that are not adjacent.">
                     diagonal
                 </InlineTooltip>
-                , one cut at a time, and watch a fresh triangle sweep in with every cut. Notice that every{" "}
+                , one at a time, and watch a fresh triangle sweep in with each one. Notice that every{" "}
                 <InlineLinkedHighlight
                     id="highlight-hexagon-start"
                     varName="hexagonViewHighlight"
                     highlightId="start"
                     {...linkedHighlightPropsFromDefinition(getVariableInfo('hexagonViewHighlight'))}
                 >
-                    cut starts from the same corner
+                    diagonal starts from the same vertex
                 </InlineLinkedHighlight>.
             </EditableParagraph>
         </Block>
@@ -383,9 +383,9 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
         <Block id="splitting-insight" padding="sm">
             <EditableParagraph id="para-splitting-insight" blockId="splitting-insight">
                 Here is the slippery part: plenty of other triangles overlap inside a hexagon, and
-                it is tempting to count them all. Only the pieces made by cuts from one corner
-                count, because those cover the shape exactly once, with nothing doubled and nothing
-                missed. Three cuts, four triangles.
+                it is tempting to count them all. Only the triangles of the triangulation count,
+                because they cover the polygon exactly once, with nothing doubled and nothing
+                missed. Three diagonals, four triangles.
             </EditableParagraph>
         </Block>
     </StackLayout>,
@@ -394,14 +394,14 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
         <Block id="splitting-hexagon-count" padding="sm">
             <EditableParagraph id="para-splitting-hexagon-count" blockId="splitting-hexagon-count">
                 <RevealOnInteraction varName="hexagonExplored">
-                    Cut from one corner until nothing is left over, a hexagon holds{" "}
+                    Triangulated from a single vertex, a hexagon decomposes into{" "}
                     <InlineFeedback
                         varName="answerHexagonTriangles"
                         correctValue={["4", "four"]}
                         position="terminal"
-                        successMessage="— yes, four triangles and not one more"
+                        successMessage="— yes, exactly four triangles and not one more"
                         failureMessage="— not quite."
-                        hint="Keep cutting until no piece is left with more than three corners, then count the pieces"
+                        hint="Keep drawing diagonals until no region has more than three vertices, then count the regions"
                         visualizationHint={{
                             blockId: "splitting-visual",
                             hintKey: "feedback-hexagon-coverage",
@@ -410,7 +410,7 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
                             steps: [
                                 {
                                     gesture: "drag",
-                                    label: "Drag from the teal corner to a dotted corner to make your first cut",
+                                    label: "Drag from the teal vertex to a dotted vertex to draw your first diagonal",
                                     position: { x: "50%", y: "16%" },
                                     completionVar: "hexagonCutCount",
                                     completionValue: 1,
@@ -418,7 +418,7 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
                                 },
                                 {
                                     gesture: "drag",
-                                    label: "Keep cutting until no piece is left over, then count the triangles",
+                                    label: "Keep drawing diagonals until every region is a triangle, then count them",
                                     position: { x: "50%", y: "16%" },
                                     completionVar: "hexagonTriangleCount",
                                     completionValue: 4,
@@ -442,7 +442,7 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-rule-formula" maxWidth="xl">
         <Block id="splitting-rule-formula" padding="lg">
             <FormulaBlock
-                latex="\textcolor{#AC8BF9}{\text{triangles}} = \textcolor{#334155}{\text{sides}} - \choice{answerRuleSubtract}"
+                latex="\textcolor{#AC8BF9}{\text{triangles}} = \textcolor{#62D0AD}{n} - \choice{answerRuleSubtract}"
                 clozeChoices={{
                     answerRuleSubtract: {
                         correctAnswer: '2',
@@ -459,8 +459,12 @@ export const splittingIntoTrianglesBlocks: ReactElement[] = [
     <StackLayout key="layout-splitting-shape-quiz" maxWidth="xl">
         <Block id="splitting-shape-quiz" padding="sm">
             <EditableParagraph id="para-splitting-shape-quiz" blockId="splitting-shape-quiz">
-                The same rule reaches shapes far too big to draw here, from six sides all the way
-                up to ten. The{" "}
+                The same rule reaches polygons far too big to draw here, from six sides up to ten,
+                and it holds for any{" "}
+                <InlineTooltip id="tooltip-n-gon" tooltip="An n-gon: the general name for a polygon with n sides, where n stands for any whole number from 3 upwards.">
+                    n-gon
+                </InlineTooltip>
+                . The{" "}
                 <InlineToggle
                     id="toggle-quiz-shape"
                     varName="quizShapeName"
