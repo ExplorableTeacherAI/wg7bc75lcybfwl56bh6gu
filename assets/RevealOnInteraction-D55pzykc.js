@@ -1,1 +1,0 @@
-import{g as l,j as e}from"./index-CeZ2lj5E.js";const m=({varName:n,children:t,placeholder:s=null,block:r=!1})=>{const i=l(n,!1),a=r?"div":"span";return i?e.jsx(a,{className:"animate-in fade-in slide-in-from-bottom-1 duration-500",children:t}):s?e.jsx(a,{className:"text-slate-400",children:s}):null};export{m as R};
